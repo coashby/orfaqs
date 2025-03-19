@@ -1,0 +1,11 @@
+# Workspaces
+**/.vscode/
+**/.DS_Store
+**/.venv/
+**/venv/
+**/tmp/
+**/.*
+
+# Build folders
+**/.build/
+**/__pycache__
