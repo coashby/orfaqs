@@ -1,2 +1,2 @@
-# orfaq
-An open-source tool for genomic sequence analysis and queries. 
+# ORFaqs: The Open Reading Frame Analysis and Queries Tool for Genomic Sequences
+
