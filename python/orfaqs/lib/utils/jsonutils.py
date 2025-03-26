@@ -18,6 +18,8 @@ _JSON_FILE_EXTENSION = '.json'
 
 
 class JsonUtils:
+    '''JsonUtils'''
+
     @staticmethod
     def json_file_extension():
         return _JSON_FILE_EXTENSION

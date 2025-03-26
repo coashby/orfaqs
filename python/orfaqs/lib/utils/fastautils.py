@@ -22,6 +22,8 @@ class FASTAHeaderKeyWords:
 
 
 class FASTASequence:
+    '''FASTASequence'''
+
     SEQUENCE_INFO_RIGHT_ARROW_DELIM = '>'
     SEQUENCE_INFO_SEMICOLON_DELIM = ';'
     _SEQUENCE_INFO_FIELD_DELIM = '['
@@ -97,6 +99,7 @@ class FASTASequence:
 
 class FASTAUtils:
     '''FASTAUtils'''
+
     _SEQUENCE_INFO_RIGHT_ARROW_DELIM = '>'
     _SEQUENCE_INFO_SEMICOLON_DELIM = ';'
     _SEQUENCE_INFO_FIELD_DELIM = '['

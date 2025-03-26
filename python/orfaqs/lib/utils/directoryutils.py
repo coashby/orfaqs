@@ -1,16 +1,14 @@
 '''
 Directory Utils
 '''
-import logging
 import os
 import pathlib
 import shutil
 
 
-_logger = logging.getLogger(__name__)
-
-
 class DirectoryUtils:
+    '''DirectoryUtils'''
+
     @staticmethod
     def is_directory(path):
         return pathlib.Path(path).is_dir()

@@ -442,6 +442,7 @@ _AMINO_ACID_SYMBOL_LUT = {
 
 
 class AminoAcidUtils:
+    '''AminoAcidUtils'''
     @staticmethod
     def available_amino_acids() -> list[AminoAcid]:
         return _AVAILABLE_AMINO_ACIDS
