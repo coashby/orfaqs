@@ -263,7 +263,7 @@ class _ACG(Codon):
 
 class _AAU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AUU')
+        self._sequence = RNASequence('AAU')
 
 
 class _AAC(Codon):
