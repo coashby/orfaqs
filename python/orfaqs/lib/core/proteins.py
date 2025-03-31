@@ -36,6 +36,10 @@ class Protein:
     def sequence_complete(self) -> bool:
         return self._sequence_complete
 
+    @property
+    def number_amino_acids(self) -> int:
+        return len(self._amino_acid_chain)
+
     def add_amino_acid(self, amino_acid: AminoAcid):
         if self._sequence_complete:
             return

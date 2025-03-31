@@ -1,3 +1,5 @@
 asitop
+disutils
 GPUtil
+setuptools
 tqdm

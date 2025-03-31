@@ -1,24 +1,31 @@
 '''
 Ribosomes
 '''
+import enum
 import logging
+
 import orfaqs.lib.core.aminoacids as _aminoacids
 import orfaqs.lib.core.codons as _codons
+
 from enum import Enum
-from tqdm import tqdm
 
 from orfaqs.lib.core.aminoacids import AminoAcid
 from orfaqs.lib.core.codons import (
     Codon,
     CodonUtils
 )
-from orfaqs.lib.core.nucleotides import (
-    NucleicAcid,
-    RNASequence
-)
+from orfaqs.lib.core.nucleotides import RNASequence
 from orfaqs.lib.core.proteins import Protein
 
 _logger = logging.getLogger(__name__)
+
+
+class _ProfilerFunctionName(Enum):
+    RIBOSOME_TRANSLATE_RNA = enum.auto()
+    RIBOSOME_UTILS_PROTEIN_DISCOVERY_ALL = enum.auto()
+    RIBOSOME_UTILS_PROTEIN_DISCOVERY_FRAME = enum.auto()
+    RIBOSOME_UTILS_FIND_START_CODONS = enum.auto()
+
 
 _AMINO_ACID_ASSOCIATED_CODON_LUT: dict[AminoAcid, list[Codon]] = {
     _aminoacids.ALANINE: [
@@ -142,6 +149,12 @@ def _create_codon_to_amino_acid_lut() -> dict[Codon, AminoAcid]:
 
 _CODON_AMINO_ACID_LUT = _create_codon_to_amino_acid_lut()
 
+_TRIPLET_AMINO_ACID_LUT = {
+    codon.sequence_str:
+        amino_acid for (codon, amino_acid) in _CODON_AMINO_ACID_LUT.items()
+
+}
+
 
 class RNAReadingFrame(Enum):
     FIRST_FRAME = 1
@@ -154,10 +167,11 @@ _RNA_READING_FRAMES = [reading_frame for reading_frame in RNAReadingFrame]
 
 class Ribosome:
     '''Ribosome'''
+
     @staticmethod
     def translate_rna(rna_sequence: str | RNASequence,
-                      start_codons: list[Codon] = None,
-                      stop_codons: list[Codon] = None) -> Protein:
+                      start_codons: list[str | Codon] = None,
+                      stop_codons: list[str | Codon] = None) -> Protein:
         '''Translate an RNA sequence into an amino acid chain (protein)
         Note: In some cases, organisms or specific genome sites, such as
         mitochondrial genomes, may use different start and stop codons.
@@ -169,10 +183,11 @@ class Ribosome:
         stop_codons -- A list of codons used by the ribosome to terminate
                        the RNA sequence translation process. (Default: None)
         '''
+
         if not isinstance(start_codons, list):
-            start_codons = RibosomeUtils.start_codons()
+            start_codons = RibosomeUtils.start_codon_triplets()
         if not isinstance(stop_codons, list):
-            stop_codons = RibosomeUtils.stop_codons()
+            stop_codons = RibosomeUtils.stop_codon_triplets()
 
         protein: Protein = None
         codon_iterator = RibosomeUtils.read_codons(rna_sequence)
@@ -187,12 +202,14 @@ class Ribosome:
                 # Expected termination of the sequence.
                 protein.end_sequence()
                 return protein
+
             protein.add_amino_acid(_CODON_AMINO_ACID_LUT.get(codon))
 
         message = (f'[INFO] {RibosomeUtils.__class__.__qualname__}: '
                    'No stop codon was found during the formation of '
                    'the protein.')
         _logger.info(message)
+
         return protein
 
 
@@ -214,12 +231,30 @@ class RibosomeUtils:
         ]
 
     @staticmethod
+    def start_codon_triplets() -> list[str]:
+        return [
+            _codons.AUG.sequence_str
+        ]
+
+    @staticmethod
+    def stop_codon_triplets() -> list[str]:
+        return [
+            _codons.UAA.sequence_str,
+            _codons.UAG.sequence_str,
+            _codons.UGA.sequence_str
+        ]
+
+    @staticmethod
     def available_reading_frames() -> list[RNAReadingFrame]:
         return _RNA_READING_FRAMES
 
     @staticmethod
-    def codon_to_amino_acid(codon: str | Codon) -> AminoAcid:
+    def codon_to_amino_acid(codon: Codon) -> AminoAcid:
         return _CODON_AMINO_ACID_LUT.get(codon)
+
+    @staticmethod
+    def triplet_to_amino_acid(triplet: str) -> AminoAcid:
+        return _TRIPLET_AMINO_ACID_LUT.get(triplet)
 
     @staticmethod
     def sequence_start_stop_indices(
@@ -241,6 +276,7 @@ class RibosomeUtils:
     @staticmethod
     def find_start_codons(rna_sequence:  str | RNASequence,
                           start_codons: list[Codon] = None) -> list[int]:
+
         if start_codons is None:
             start_codons = RibosomeUtils.start_codons()
 
@@ -253,6 +289,19 @@ class RibosomeUtils:
             codon_index += CodonUtils.number_bases_per_codon()
 
         return start_codon_indices
+
+    @staticmethod
+    def read_triplets(rna_sequence: str | RNASequence):
+        if not isinstance(rna_sequence, RNASequence):
+            rna_sequence = RNASequence(rna_sequence)
+        i = 0
+        codon_step = CodonUtils.number_bases_per_codon()
+        # Only read a multiple of codon_step bases.
+        read_length = (rna_sequence.sequence_length -
+                       (rna_sequence.sequence_length % codon_step))
+        while i < read_length:
+            yield str(rna_sequence[i:(i+codon_step)])
+            i += codon_step
 
     @staticmethod
     def read_codons(rna_sequence: str | RNASequence):
@@ -268,52 +317,3 @@ class RibosomeUtils:
                 rna_sequence[i:(i+codon_step)]
             )
             i += codon_step
-
-    @staticmethod
-    def discover_proteins(
-            rna_sequence: str | list[str] | list[NucleicAcid] | RNASequence,
-            frame: RNAReadingFrame = None,
-            start_codons: list[Codon] = None,
-            stop_codons: list[Codon] = None) -> tuple[dict, int]:
-        if not isinstance(rna_sequence, RNASequence):
-            rna_sequence = RNASequence(rna_sequence)
-
-        reading_frames: list[RNAReadingFrame] = []
-        if frame is None:
-            reading_frames = _RNA_READING_FRAMES
-        else:
-            reading_frames = [frame]
-
-        protein_map = {reading_frame: [] for reading_frame in reading_frames}
-        protein_count = 0
-        for reading_frame in reading_frames:
-            (start_index,
-             stop_index) = RibosomeUtils.sequence_start_stop_indices(
-                rna_sequence,
-                reading_frame
-            )
-            rna_sequence_frame = rna_sequence[start_index:stop_index]
-            # Get all start codon positions for the given reading frame.
-            start_codon_indices = RibosomeUtils.find_start_codons(
-                rna_sequence_frame,
-                start_codons
-            )
-
-            # For every start codon found, translate the RNA region
-            # beginning at that codon.
-            process_description = ('Translating RNA from start codons in '
-                                   f'reading frame {reading_frame.value}...')
-            for start_codon_index in tqdm(start_codon_indices,
-                                          desc=process_description):
-                rna_coding_region = rna_sequence_frame[start_codon_index:]
-                translated_protein = Ribosome.translate_rna(
-                    rna_coding_region,
-                    start_codons=start_codons,
-                    stop_codons=stop_codons
-                )
-                if isinstance(translated_protein, Protein):
-                    protein_map[reading_frame].append(translated_protein)
-                    protein_count += 1
-
-            print(f'Protein Count: {protein_count}')
-        return (protein_map, protein_count)
