@@ -37,9 +37,8 @@ class RNAPolymerase:
             termination_site = dna_region.sequence_length
 
         dna_region = dna_region[:termination_site]
-
         rna_sequence_str = dna_region.sequence_str.replace(
-            THYMINE.symbol,
-            URACIL.symbol
+            THYMINE.symbol.lower(),
+            URACIL.symbol.lower()
         )
         return RNASequence(rna_sequence_str, rna_sequence_name)

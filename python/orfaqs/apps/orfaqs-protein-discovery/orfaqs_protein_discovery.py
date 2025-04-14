@@ -3,6 +3,7 @@ import logging
 import multiprocessing
 import os
 
+from datetime import datetime
 from enum import Enum
 from tqdm import tqdm
 
@@ -14,6 +15,8 @@ from orfaqs.lib.core.enzymes import RNAPolymerase
 from orfaqs.lib.utils.fastautils import FASTAUtils
 from orfaqs.lib.core.nucleotides import (
     DNASequence,
+    GenomicSequence,
+    NucleotideUtils,
     RNASequence
 )
 from orfaqs.lib.core.proteins import Protein
@@ -123,10 +126,12 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
             if isinstance(translated_protein, Protein):
                 protein_list.append(translated_protein)
 
+            # Record the "1's" based index for the start codon position
+            ones_based_index_start_codon_position = start_codon_index + 1
             with open(log_file_path, 'a', encoding='utf-8') as i_file:
                 protein_record_json_str = _ProteinDiscoveryRecord(
                     reading_frame,
-                    start_codon_index,
+                    ones_based_index_start_codon_position,
                     translated_protein
                 ).condensed_record_json_str
                 i_file.write(f'{protein_record_json_str}\n')
@@ -141,6 +146,9 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
             stop_codons: list[Codon] = None,
             log_directory_path: str | os.PathLike = None) -> tuple[dict, int]:
 
+        _perf_profiler.start_perf_timer(
+            _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
+        )
         if log_directory_path is None:
             log_directory_path = '.log-path'
 
@@ -148,7 +156,9 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
             log_directory_path
         )
         DirectoryUtils.mkdir_path(log_directory_path)
-        log_file_path = log_directory_path.joinpath('.discovered_proteins.txt')
+        timestamp_str = datetime.now().strftime('%Y%m%d-%H%M%S')
+        file_name = f'{timestamp_str}-discovered-proteins.txt'
+        log_file_path = log_directory_path.joinpath(file_name)
 
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
@@ -219,12 +229,36 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
             protein_count += len(protein_map[reading_frame])
             print(f'Protein Count: {protein_count}')
 
+        _perf_profiler.stop_perf_timer(
+            _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
+        )
         return (protein_map, protein_count)
 
     @staticmethod
-    def _process_fasta_file(
-            fasta_file_path: str | os.PathLike,
-            output_directory: str | os.PathLike = None):
+    def _process_genomic_sequence(
+            genomic_sequence: str | GenomicSequence,
+            log_directory_path: str | os.PathLike = None):
+        if isinstance(genomic_sequence, str):
+            genomic_sequence = NucleotideUtils.create_sequence(
+                genomic_sequence
+            )
+
+        rna_sequence: RNASequence = None
+        if isinstance(genomic_sequence, DNASequence):
+            rna_sequence = RNAPolymerase.transcribe(genomic_sequence)
+        elif isinstance(genomic_sequence, RNASequence):
+            rna_sequence = genomic_sequence
+
+        (protein_map,
+         protein_count) = OrfaqsProteinDiscovery.discover_proteins(
+             rna_sequence,
+             log_directory_path=log_directory_path
+        )
+        return (protein_map, protein_count)
+
+    @staticmethod
+    def _process_fasta_file(fasta_file_path: str | os.PathLike,
+                            output_directory: str | os.PathLike = None):
         fasta_sequences = FASTAUtils.parse_file(fasta_file_path)
         if output_directory is not None:
             output_directory = DirectoryUtils.make_path_object(
@@ -234,35 +268,20 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
         protein_counts = {}
         total_protein_count = 0
         for (sequence_id, fasta_sequence) in enumerate(fasta_sequences):
-            _perf_profiler.start_perf_timer(
-                _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
-            )
-
             print('-------------------------------------------------------')
             print(f'Processing Sequence: {fasta_sequence.sequence_name}')
-            genomic_sequence = fasta_sequence.sequence
-            rna_sequence: RNASequence = None
-            if isinstance(genomic_sequence, DNASequence):
-                rna_sequence = RNAPolymerase.transcribe(genomic_sequence)
-            elif isinstance(genomic_sequence, RNASequence):
-                rna_sequence = genomic_sequence
-
             log_directory = output_directory.joinpath(
                 f'sequence-{sequence_id}'
             )
             (protein_map,
-             protein_count) = OrfaqsProteinDiscovery.discover_proteins(
-                 rna_sequence,
+             protein_count) = OrfaqsProteinDiscovery.process_genomic_sequence(
+                 fasta_sequence.sequence,
                  log_directory_path=log_directory
             )
             all_protein_maps.append(protein_map)
             protein_counts[fasta_sequence.sequence_name] = protein_count
             total_protein_count += protein_count
             print('\n')
-
-            _perf_profiler.stop_perf_timer(
-                _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
-            )
 
         print(f'Total number of proteins discovered: {total_protein_count}')
 
@@ -274,6 +293,14 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
     def cli():
         try:
             arg_descriptor_list = [
+                CliUtil.create_new_arg_descriptor(
+                    ('-j', '--job_id'),
+                    arg_help=('A string used to uniquely identify a set of '
+                              'results generated by the tool. All results '
+                              'with the same job_id share the same directory '
+                              'sub-folder.'),
+                    arg_type=str,
+                    default=None),
                 CliUtil.create_new_arg_descriptor(
                     ('-i', '--input_sequence'),
                     arg_help=('A sequence file or genomic sequence string. '
@@ -312,22 +339,34 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
     @staticmethod
     def _run(input_sequence: str | os.PathLike,
              output_directory: str | os.PathLike,
+             job_id: str = None,
              **kwargs):
-        if ((input_sequence is None) or
-                (not DirectoryUtils.path_exists(input_sequence))):
+
+        if ((input_sequence is None) and
+            (not DirectoryUtils.path_exists(input_sequence)) and
+            (not NucleotideUtils.is_dna_sequence(input_sequence)) and
+                (not NucleotideUtils.is_rna_sequence(input_sequence))):
             message = ('[Invalid Argument]: A valid input object must be '
                        f'specified when calling {__class__.__qualname__}')
             _logger.error(message)
-            return
+            raise ValueError(message)
 
         if output_directory is None:
             output_directory = OrfaqsProteinDiscovery.default_output_directory()
 
         # Create the local output directory and output file path
         output_directory = DirectoryUtils.make_path_object(output_directory)
+        if isinstance(job_id, str):
+            output_directory = output_directory.joinpath(job_id)
 
         if DirectoryUtils.is_file(input_sequence):
+            # Process as a FASTA file
             OrfaqsProteinDiscovery._process_fasta_file(
+                input_sequence,
+                output_directory
+            )
+        else:
+            OrfaqsProteinDiscovery._process_genomic_sequence(
                 input_sequence,
                 output_directory
             )

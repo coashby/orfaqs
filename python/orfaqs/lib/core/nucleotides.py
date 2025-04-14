@@ -142,6 +142,7 @@ class GenomicSequence:
         if isinstance(sequence, list):
             sequence = ''.join(sequence)
 
+        sequence = sequence.lower()
         for base in sequence:
             if base not in list(self.available_bases()):
                 message = (f'[ERROR] The following symbol {base} is not '
@@ -307,6 +308,34 @@ class NucleotideUtils:
                            'input for errors.')
                 _logger.error(message)
                 raise ValueError(message) from e
+
+    @staticmethod
+    def is_dna_sequence(
+            sequence: (str |
+                       list[str] |
+                       list[NucleicAcid])) -> bool:
+        if isinstance(sequence, list):
+            sequence = ''.join(sequence)
+
+        for base in sequence:
+            if base not in list(DNASequence.available_bases()):
+                return False
+
+        return True
+
+    @staticmethod
+    def is_rna_sequence(
+            sequence: (str |
+                       list[str] |
+                       list[NucleicAcid])) -> bool:
+        if isinstance(sequence, list):
+            sequence = ''.join(sequence)
+
+        for base in sequence:
+            if base not in list(RNASequence.available_bases()):
+                return False
+
+        return True
 
     @staticmethod
     def dna_nucleotides() -> list[NucleicAcid]:
