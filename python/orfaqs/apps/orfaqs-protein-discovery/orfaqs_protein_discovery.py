@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import enum
 import logging
 import multiprocessing
@@ -8,7 +10,7 @@ from enum import Enum
 from tqdm import tqdm
 
 from orfaqs.apps.common.cliutils import CliUtil
-from orfaqs.apps.common.orfaqsapp import OrfaqsApp
+from orfaqs.apps.common.orfaqsapp import ORFaqsApp
 
 from orfaqs.lib.core.codons import Codon
 from orfaqs.lib.core.enzymes import RNAPolymerase
@@ -85,7 +87,7 @@ class _ProteinDiscoveryRecord:
         print(record_json_str)
 
 
-class OrfaqsProteinDiscovery(OrfaqsApp):
+class OrfaqsProteinDiscovery(ORFaqsApp):
     '''OrfaqsProteinDiscovery'''
     _MULTITHREADING_SEQUENCE_LENGTH_THRESHOLD = 1000
 
@@ -287,7 +289,7 @@ class OrfaqsProteinDiscovery(OrfaqsApp):
 
     @staticmethod
     def program_name():
-        return 'ORFAQs Protein Discovery'
+        return 'ORFaqs Protein Discovery'
 
     @staticmethod
     def cli():

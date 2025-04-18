@@ -1,5 +1,6 @@
 asitop
 disutils
 GPUtil
+pyinstaller
 setuptools
 tqdm

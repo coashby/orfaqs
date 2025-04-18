@@ -11,7 +11,7 @@ from abc import (
 from orfaqs.lib.utils.perfutils import PerfProfiler
 
 
-class OrfaqsApp(ABC):
+class ORFaqsApp(ABC):
     '''OrfaqsApp'''
 
     @staticmethod
