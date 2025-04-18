@@ -6,6 +6,11 @@
 **/tmp/
 **/.*
 
+# File extensions
+*.spec
+
 # Build folders
 **/.build/
 **/__pycache__
+**/build/
+**/dist/
