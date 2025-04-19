@@ -11,27 +11,18 @@ from orfaqs.lib.core.nucleotides import (
 from orfaqs.lib.utils.jsonutils import JsonUtils
 
 
-class FASTAHeaderKeyWords:
-    REF = 'ref'
-    ORG = 'org'
-    STRAIN = 'strain'
-    MOLTYPE = 'moltype'
-    CHROMOSOME = 'chromosome'
-    LOCATION = 'location'
-    TOP = 'top'
-
-
 class FASTASequence:
     '''FASTASequence'''
 
-    SEQUENCE_INFO_RIGHT_ARROW_DELIM = '>'
-    SEQUENCE_INFO_SEMICOLON_DELIM = ';'
-    _SEQUENCE_INFO_FIELD_DELIM = '['
+    SEQUENCE_ID_DELIM = '>'
+    HEADER_INFO_SEQUENCE_ID_KEY = 'sequence_id'
+    HEADER_INFO_SEQUENCE_DESCRIPTION = 'sequence_description'
 
     def __init__(self,
                  header_str: str,
                  sequence: str | list[str]):
-        self._header_info = FASTASequence._parse_header(header_str)
+        (self._sequence_id,
+         self._header_info) = FASTASequence._parse_header(header_str)
         self._sequence_name = JsonUtils.as_json_string(
             self._header_info,
             indent=None
@@ -46,6 +37,10 @@ class FASTASequence:
         return self._header_info
 
     @property
+    def sequence_id(self) -> str:
+        return self._sequence_id
+
+    @property
     def sequence_name(self) -> str:
         return self._sequence_name
 
@@ -54,60 +49,39 @@ class FASTASequence:
         return self._sequence
 
     @staticmethod
-    def _parse_header(header_str: str) -> dict[str, str]:
+    def _parse_header(header_str: str) -> tuple[str, dict[str, str]]:
         if not FASTAUtils.is_fasta_header(header_str):
             return None
         header_str = header_str.replace(
-            FASTASequence.SEQUENCE_INFO_RIGHT_ARROW_DELIM,
-            ''
-        )
-        header_str = header_str.replace(
-            FASTASequence.SEQUENCE_INFO_SEMICOLON_DELIM,
+            FASTASequence.SEQUENCE_ID_DELIM,
             ''
         )
 
         # Grab the individual fields of the header
+        sequence_id = None
         header_info = {}
-        header_fields = header_str.split('[')
-        for field in header_fields:
-            # Remove all non-essential characters
-            field = field.replace('|', '')
-            field = field.replace('[', ' ')
-            field = field.replace(']', '')
-            key = None
-            if FASTAHeaderKeyWords.REF in field:
-                key = FASTAHeaderKeyWords.REF
-            elif FASTAHeaderKeyWords.ORG in field:
-                key = FASTAHeaderKeyWords.ORG
-            elif FASTAHeaderKeyWords.STRAIN in field:
-                key = FASTAHeaderKeyWords.STRAIN
-            elif FASTAHeaderKeyWords.MOLTYPE in field:
-                key = FASTAHeaderKeyWords.MOLTYPE
-            elif FASTAHeaderKeyWords.CHROMOSOME in field:
-                key = FASTAHeaderKeyWords.CHROMOSOME
-            elif FASTAHeaderKeyWords.LOCATION in field:
-                key = FASTAHeaderKeyWords.LOCATION
-            elif FASTAHeaderKeyWords.TOP in field:
-                key = FASTAHeaderKeyWords.TOP
+        header_fields = header_str.split(' ')
+        if len(header_fields) > 0:
+            sequence_id = header_fields[0].lower()
+            header_info[FASTASequence.HEADER_INFO_SEQUENCE_ID_KEY] = (
+                sequence_id
+            )
+            header_info[FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION] = (
+                ' '.join(header_fields[1:])
+            )
 
-            field = field.replace(f'{key}=', '')
-            field = field.replace(key, '')
-            header_info[key] = field
-
-        return header_info
+        return (sequence_id, header_info)
 
 
 class FASTAUtils:
     '''FASTAUtils'''
 
-    _SEQUENCE_INFO_RIGHT_ARROW_DELIM = '>'
-    _SEQUENCE_INFO_SEMICOLON_DELIM = ';'
-    _SEQUENCE_INFO_FIELD_DELIM = '['
+    _SEQUENCE_IDENTIFIER_DELIM = '>'
 
     @staticmethod
     def is_fasta_header(line_str: str) -> bool:
-        return ((FASTAUtils._SEQUENCE_INFO_RIGHT_ARROW_DELIM in line_str) or
-                (FASTAUtils._SEQUENCE_INFO_SEMICOLON_DELIM in line_str))
+        return ((len(line_str) > 0) and
+                (line_str[0] == FASTAUtils._SEQUENCE_IDENTIFIER_DELIM))
 
     @staticmethod
     def parse_file(
