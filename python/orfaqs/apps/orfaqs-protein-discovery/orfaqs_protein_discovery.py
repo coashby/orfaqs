@@ -2,8 +2,10 @@
 
 import enum
 import logging
+import math
 import multiprocessing
 import os
+import pathlib
 
 from datetime import datetime
 from enum import Enum
@@ -87,9 +89,53 @@ class _ProteinDiscoveryRecord:
         print(record_json_str)
 
 
-class OrfaqsProteinDiscovery(ORFaqsApp):
-    '''OrfaqsProteinDiscovery'''
+class ORFaqsProteinDiscovery(ORFaqsApp):
+    '''ORFaqsProteinDiscovery'''
     _MULTITHREADING_SEQUENCE_LENGTH_THRESHOLD = 1000
+
+    _RESULTS_FILE_NAME = 'discovered-proteins'
+
+    @staticmethod
+    def _result_file_name(include_date_time_stamp: bool = False,
+                          reading_frame: RNAReadingFrame = None,
+                          custom_tag: str = None) -> pathlib.Path:
+
+        timestamp_str = datetime.now().strftime('%Y%m%d-%H%M%S')
+        file_name = ORFaqsProteinDiscovery._RESULTS_FILE_NAME
+        if include_date_time_stamp:
+            file_name = f'{timestamp_str}-{file_name}'
+
+        if reading_frame is not None:
+            file_name = f'{file_name}-reading-frame-{reading_frame.value}'
+
+        if custom_tag is not None:
+            file_name = f'{file_name}-{custom_tag}'
+
+        return DirectoryUtils.make_path_object(file_name).with_suffix('.txt')
+
+    @staticmethod
+    def _consolidate_output_files(
+            consolidated_file_name: (str | pathlib.Path),
+            file_paths: list[str | pathlib.Path],
+            remove_file_paths: bool = True) -> pathlib.Path:
+        try:
+            with open(consolidated_file_name, 'w', encoding='utf-8') as o_file:
+                for file_path in file_paths:
+                    with open(file_path, 'r', encoding='utf-8') as i_file:
+                        o_file.write(i_file.read())
+
+        except FileNotFoundError as e:
+            message = ('[ERROR] An input file could not be found while '
+                       'consolidating results for export.\n'
+                       f'(debug) ->\n'
+                       f'\tfile_path: {file_path}')
+            _logger.error(message)
+            print(message)
+            raise FileExistsError from e
+
+        if remove_file_paths:
+            for file_path in file_paths:
+                DirectoryUtils.remove_file_path(file_path)
 
     @staticmethod
     def _translate_rna_group(reading_frame: RNAReadingFrame,
@@ -97,28 +143,29 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
                              start_codon_indices: list[int],
                              start_codons: list[Codon],
                              stop_codons: list[Codon],
-                             log_file_path: str | os.PathLike,
+                             output_directory: str | pathlib.Path,
                              thread_index: int,
                              result_queue: multiprocessing.Queue):
 
+        if len(start_codon_indices) == 0:
+            print("EMPTY LIST")
         protein_list: list[Protein] = []
-        log_file_path = DirectoryUtils.make_path_object(log_file_path)
         # For every start codon found, translate the RNA region
         # beginning at that codon.
-        process_description = ('Translating RNA from start codons in '
-                               f'reading frame {reading_frame.value}...')
-        if thread_index is not None:
-            process_description = (f'[Thread {thread_index}] '
-                                   f'{process_description}')
-            parent_directory = log_file_path.parent
-            log_file_name = DirectoryUtils.remove_extension(log_file_path.name)
-            log_file_extension = log_file_path.suffix
-            log_file_path = parent_directory.joinpath(
-                (f'{log_file_name}-tid{thread_index}')
-            ).with_suffix(log_file_extension)
-
-        for start_codon_index in tqdm(start_codon_indices,
-                                      desc=process_description):
+        process_list = tqdm(
+            start_codon_indices,
+            desc=(f'[Thread {thread_index}] '
+                  'Translating RNA from start codons in '
+                  f'reading frame {reading_frame.value}...')
+        )
+        # Create the intermediate results file.
+        results_file_name = ORFaqsProteinDiscovery._result_file_name(
+            include_date_time_stamp=True,
+            custom_tag=f'tid{thread_index}'
+        )
+        results_file_path = DirectoryUtils.make_path_object(
+            output_directory).joinpath(results_file_name)
+        for start_codon_index in process_list:
             rna_coding_region = rna_sequence[start_codon_index:]
             translated_protein = Ribosome.translate_rna(
                 rna_coding_region,
@@ -130,37 +177,32 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
 
             # Record the "1's" based index for the start codon position
             ones_based_index_start_codon_position = start_codon_index + 1
-            with open(log_file_path, 'a', encoding='utf-8') as i_file:
+            with open(results_file_path, 'a', encoding='utf-8') as o_file:
                 protein_record_json_str = _ProteinDiscoveryRecord(
                     reading_frame,
                     ones_based_index_start_codon_position,
                     translated_protein
                 ).condensed_record_json_str
-                i_file.write(f'{protein_record_json_str}\n')
+                o_file.write(f'{protein_record_json_str}\n')
 
-        result_queue.put(protein_list)
+        results = (protein_list, results_file_path)
+        result_queue.put(results)
 
     @staticmethod
-    def discover_proteins(
+    def _discover_proteins(
             rna_sequence: str | RNASequence,
             frame: RNAReadingFrame = None,
             start_codons: list[Codon] = None,
             stop_codons: list[Codon] = None,
-            log_directory_path: str | os.PathLike = None) -> tuple[dict, int]:
+            output_directory: str | pathlib.Path = None) -> tuple[dict, int]:
 
         _perf_profiler.start_perf_timer(
             _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
         )
-        if log_directory_path is None:
-            log_directory_path = '.log-path'
-
-        log_directory_path = DirectoryUtils.make_path_object(
-            log_directory_path
+        output_directory = DirectoryUtils.make_path_object(
+            output_directory
         )
-        DirectoryUtils.mkdir_path(log_directory_path)
-        timestamp_str = datetime.now().strftime('%Y%m%d-%H%M%S')
-        file_name = f'{timestamp_str}-discovered-proteins.txt'
-        log_file_path = log_directory_path.joinpath(file_name)
+        DirectoryUtils.mkdir_path(output_directory)
 
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
@@ -170,12 +212,14 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
             reading_frames = RibosomeUtils.available_reading_frames()
         else:
             reading_frames = [frame]
-
+        #######################################################################
+        # Initialize the protein map and related variables which store the
+        # the results of the discovered proteins.
         protein_map = {reading_frame: [] for reading_frame in reading_frames}
         protein_count = 0
         thread_count = 1
         if (rna_sequence.sequence_length >
-                OrfaqsProteinDiscovery._MULTITHREADING_SEQUENCE_LENGTH_THRESHOLD):
+                ORFaqsProteinDiscovery._MULTITHREADING_SEQUENCE_LENGTH_THRESHOLD):
             thread_count = os.cpu_count()
 
         for reading_frame in reading_frames:
@@ -184,37 +228,50 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
                 rna_sequence,
                 reading_frame
             )
+            ###################################################################
+            # Get all start codon positions for the current reading frame.
             rna_sequence_frame = rna_sequence[start_index:stop_index]
-            # Get all start codon positions for the given reading frame.
             start_codon_indices = RibosomeUtils.find_start_codons(
                 rna_sequence_frame,
                 start_codons
             )
             number_start_codons = len(start_codon_indices)
-            thread_pool: list[multiprocessing.Process] = [None] * thread_count
-            return_queue_list = [multiprocessing.Queue()] * thread_count
-            group_size = int(number_start_codons / thread_count)
 
+            if number_start_codons == 0:
+                # Skip processing of this reading frame.
+                message = ('[INFO] No start codons were found for '
+                           f'reading frame {reading_frame.value}.')
+                _logger.info(message)
+                print(message)
+                continue
+
+            ###################################################################
             # Process start codons
-            message = (f'{number_start_codons} start codons found for '
+            message = (f'[INFO] {number_start_codons} start codons found for '
                        f'reading frame {reading_frame.value}.')
             _logger.info(message)
             print(message)
+
+            thread_pool: list[multiprocessing.Process] = [None] * thread_count
+            return_queue_list = [multiprocessing.Queue()] * thread_count
+            group_size = math.ceil(number_start_codons / thread_count)
+
             for thread_index in range(thread_count):
                 start_index = thread_index*group_size
                 end_index = start_index + group_size
                 start_codon_indices_subset = (
                     start_codon_indices[start_index:end_index]
                 )
+
                 thread_pool[thread_index] = multiprocessing.Process(
-                    target=OrfaqsProteinDiscovery._translate_rna_group,
+                    target=ORFaqsProteinDiscovery._translate_rna_group,
                     args=(
                         reading_frame,
                         str(rna_sequence_frame),
                         start_codon_indices_subset,
                         start_codons,
                         stop_codons,
-                        log_file_path,
+                        output_directory,
                         thread_index,
                         return_queue_list[thread_index]
                     )
@@ -222,14 +279,32 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
 
                 thread_pool[thread_index].start()
 
+            ###################################################################
             # Update the protein map. Because this implementation uses queues,
             # join() is not called. Calling join() with queue objects will
             # cause the application to deadlock.
+            result_files_list: list[pathlib.Path] = []
             for return_queue in return_queue_list:
-                protein_map[reading_frame] += return_queue.get()
+                (protein_list, results_file_path) = return_queue.get()
+                protein_map[reading_frame] += protein_list
+                result_files_list.append(results_file_path)
 
             protein_count += len(protein_map[reading_frame])
-            print(f'Protein Count: {protein_count}')
+            message = (f'[INFO] Protein Count: {protein_count}')
+            _logger.info(message)
+            print(message)
+
+            # Consolidate results for the given reading frame.
+            final_results_file_name = ORFaqsProteinDiscovery._result_file_name(
+                reading_frame=reading_frame
+            )
+            final_results_file_path = output_directory.joinpath(
+                final_results_file_name
+            )
+            ORFaqsProteinDiscovery._consolidate_output_files(
+                final_results_file_path,
+                result_files_list
+            )
 
         _perf_profiler.stop_perf_timer(
             _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
@@ -239,7 +314,7 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
     @staticmethod
     def _process_genomic_sequence(
             genomic_sequence: str | GenomicSequence,
-            log_directory_path: str | os.PathLike = None):
+            output_directory: str | pathlib.Path = None):
         if isinstance(genomic_sequence, str):
             genomic_sequence = NucleotideUtils.create_sequence(
                 genomic_sequence
@@ -252,15 +327,15 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
             rna_sequence = genomic_sequence
 
         (protein_map,
-         protein_count) = OrfaqsProteinDiscovery.discover_proteins(
+         protein_count) = ORFaqsProteinDiscovery._discover_proteins(
              rna_sequence,
-             log_directory_path=log_directory_path
+             output_directory=output_directory
         )
         return (protein_map, protein_count)
 
     @staticmethod
-    def _process_fasta_file(fasta_file_path: str | os.PathLike,
-                            output_directory: str | os.PathLike = None):
+    def _process_fasta_file(fasta_file_path: str | pathlib.Path,
+                            output_directory: str | pathlib.Path = None):
         fasta_sequences = FASTAUtils.parse_file(fasta_file_path)
         if output_directory is not None:
             output_directory = DirectoryUtils.make_path_object(
@@ -272,13 +347,13 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
         for fasta_sequence in fasta_sequences:
             print('-------------------------------------------------------')
             print(f'Processing Sequence: {fasta_sequence.sequence_name}')
-            log_directory = output_directory.joinpath(
+            current_sequence_output_directory = output_directory.joinpath(
                 f'sequence-{fasta_sequence.sequence_id}'
             )
             (protein_map,
-             protein_count) = OrfaqsProteinDiscovery._process_genomic_sequence(
+             protein_count) = ORFaqsProteinDiscovery._process_genomic_sequence(
                  fasta_sequence.sequence,
-                 log_directory_path=log_directory
+                 output_directory=current_sequence_output_directory
             )
             all_protein_maps.append(protein_map)
             protein_counts[fasta_sequence.sequence_name] = protein_count
@@ -299,8 +374,7 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
                     ('-i', '--input_sequence'),
                     arg_help=('A sequence file or genomic sequence string. '
                               'Currently, only FASTA files are supported.'),
-                    arg_type=str,
-                    default='.resources/small-sequences/yal068c.fasta'),
+                    arg_type=str),
                 CliUtil.create_new_arg_descriptor(
                     ('-j', '--job_id'),
                     arg_help=('A string used to uniquely identify a set of '
@@ -314,14 +388,14 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
                     arg_help=('The output directory for exported files '
                               'and results. If the path does not exist, one '
                               'will be created. The default directory is: '
-                              f'{OrfaqsProteinDiscovery.default_output_directory()}'),
+                              f'{ORFaqsProteinDiscovery.default_output_directory()}'),
                     arg_type=str,
-                    default=OrfaqsProteinDiscovery.default_output_directory())
+                    default=None)
             ]
 
             cli_arg_parser = CliUtil.create_arg_parser(
                 arg_descriptor_list,
-                program_name=OrfaqsProteinDiscovery.program_name(),
+                program_name=ORFaqsProteinDiscovery.program_name(),
                 description=('Discover protein sequences from '
                              'DNA or RNA sequences.'),
                 epilog='')
@@ -334,15 +408,15 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
                 print(message)
                 cli_arg_parser.print_help()
             else:
-                OrfaqsProteinDiscovery.run(**ui_args)
+                ORFaqsProteinDiscovery.run(**ui_args)
 
-        except SystemExit as error:
-            if error.args[0] is True:
-                raise
+        except SystemExit as e:
+            if e.args[0] is True:
+                raise SystemExit from e
 
     @staticmethod
-    def _run(input_sequence: str | os.PathLike,
-             output_directory: str | os.PathLike,
+    def _run(input_sequence: str | pathlib.Path,
+             output_directory: str | pathlib.Path,
              job_id: str = None,
              **kwargs):
 
@@ -356,7 +430,9 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
             raise ValueError(message)
 
         if output_directory is None:
-            output_directory = OrfaqsProteinDiscovery.default_output_directory()
+            output_directory = (
+                ORFaqsProteinDiscovery.default_output_directory()
+            )
 
         # Create the local output directory and output file path
         output_directory = DirectoryUtils.make_path_object(output_directory)
@@ -364,17 +440,18 @@ class OrfaqsProteinDiscovery(ORFaqsApp):
             output_directory = output_directory.joinpath(job_id)
 
         if DirectoryUtils.is_file(input_sequence):
-            # Process as a FASTA file
-            OrfaqsProteinDiscovery._process_fasta_file(
+            # Try processing as a FASTA file
+            ORFaqsProteinDiscovery._process_fasta_file(
                 input_sequence,
                 output_directory
             )
         else:
-            OrfaqsProteinDiscovery._process_genomic_sequence(
+            # Try processing as an sequence string.
+            ORFaqsProteinDiscovery._process_genomic_sequence(
                 input_sequence,
                 output_directory
             )
 
 
 if __name__ == '__main__':
-    OrfaqsProteinDiscovery.cli()
+    ORFaqsProteinDiscovery.cli()
