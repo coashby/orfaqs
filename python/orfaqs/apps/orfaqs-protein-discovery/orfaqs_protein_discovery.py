@@ -401,7 +401,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                 epilog='')
 
             ui_args = CliUtil.parse_args(cli_arg_parser)
-            if 'input_sequence' not in ui_args:
+            if ui_args.get('input_sequence') is None:
                 message = ('[ERROR] No input file or sequence string was '
                            'specified. A valid input is required.')
                 _logger.error(message)
