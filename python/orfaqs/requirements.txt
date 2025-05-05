@@ -1,6 +1,8 @@
 asitop
 disutils
 GPUtil
+openpyxl
+pandas
 pyinstaller
 setuptools
 tqdm

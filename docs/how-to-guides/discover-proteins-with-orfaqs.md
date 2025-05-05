@@ -49,6 +49,25 @@ TAG
 ```
 orfaqs_protein_discovery -i ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTGCTTCTGCA
 ```
+
+### Specifying the Exported Results Format
+Three options are supported for exporting the discovered proteins:
+
+| Export Option | Export File Extension |
+|-|-|
+| `--export_as_csv` *(default option)* |`.csv` |
+| `--export_as_json` | `.json` |
+| `--export_as_excel` | `.xlsx` |
+
+#### Export Results in Excel Format
+```
+orfaqs_protein_discovery -i input_fasta.fasta --export_as_excel
+```
+#### Export Results in JSON Format
+```
+orfaqs_protein_discovery -i input_fasta.fasta --export_as_json
+```
+
 ### Changing the Output Directory
 All outputs from the app are generated within the directory path
 `<OUTPUT_DIRECTORY>/.orfaqs-apps/orfaqs-protein-discovery`. By default,
@@ -90,14 +109,33 @@ corresponding sequence.
 `<OUTPUT_DIRECTORY>/<JOB_ID>/.orfaqs-apps/orfaqs-protein-discovery`.
 
 ### Output Files
-Each output file name is formatted as:
-`discovered-proteins-reading-frame-<READING_FRAME>.txt` where `<READING_FRAME>`
-is the index 1, 2, or 3, corresponding to the reading frame used when the
-protein was found.
+Outputs are presented in two ways:
+1. By reading frame
+1. As a complete set of results (data from all reading frames included)
 
-Within each file, results are presented as a list of JSON formatted line strings
-with one result per line. Each JSON string contains the following key-value
-pairs:
+#### Outputs by Reading Frame
+Each reading frame specific output file name is formatted as:
+`discovered-proteins-reading-frame-<READING_FRAME>.<EXPORT_EXTENSION>` where:
+- `<READING_FRAME>`is the index 1, 2, or 3, corresponding to the reading
+frame used when the protein was found, and
+- `<EXPORT_EXTENSION>` corresponds to the extension used by the export option selected (`.csv`, `.json`, or `.xlsx`)
+
+If no proteins were found within a particular reading frame, then no output
+data are exported for that reading frame.
+
+#### All Discovered Proteins Outputs
+Results for all the proteins discoverd for a given sequence are formatted as:
+`discovered-proteins.<EXPORT_EXTENSION>` where:
+- `<EXPORT_EXTENSION>` corresponds to the extension used by the export option selected (`.csv`, `.json`, or `.xlsx`)
+
+If no proteins were found for a given protein sequence, then no output data are
+exported.
+
+#### Output File Contents
+Within each file, results are organized either as tables (in the case of `CSV`
+and `Excel` exports), or as lists of `JSON` objects (in the case of `JSON`
+exports). Each file contains the following information:
+
 - `reading_frame`: `(int)` The reading frame used during translation.
 - `rna_sequence_position`: `(int)` The place in the RNA sequence where
 translation began.
@@ -106,4 +144,5 @@ single-letter code names.
 - `protein_length`: `(int)` The total number of amino acids making up the
 protein sequence.
 
-
+The keys used in either format (columns for exported tables and keys in JSON
+key-value pairs) are identical.
