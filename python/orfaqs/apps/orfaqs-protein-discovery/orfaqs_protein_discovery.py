@@ -676,4 +676,5 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     ORFaqsProteinDiscovery.cli()
