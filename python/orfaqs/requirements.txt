@@ -3,6 +3,8 @@ disutils
 GPUtil
 openpyxl
 pandas
+pre-commit
 pyinstaller
+ruff
 setuptools
 tqdm
