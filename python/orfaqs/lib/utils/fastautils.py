@@ -1,35 +1,29 @@
-''''
+"""'
 FASTA Utils
-'''
+"""
 
 import os
 
-from orfaqs.lib.core.nucleotides import (
-    GenomicSequence,
-    NucleotideUtils
-)
+from orfaqs.lib.core.nucleotides import GenomicSequence, NucleotideUtils
 from orfaqs.lib.utils.jsonutils import JsonUtils
 
 
 class FASTASequence:
-    '''FASTASequence'''
+    """FASTASequence"""
 
     SEQUENCE_ID_DELIM = '>'
     HEADER_INFO_SEQUENCE_ID_KEY = 'sequence_id'
     HEADER_INFO_SEQUENCE_DESCRIPTION = 'sequence_description'
 
-    def __init__(self,
-                 header_str: str,
-                 sequence: str | list[str]):
-        (self._sequence_id,
-         self._header_info) = FASTASequence._parse_header(header_str)
+    def __init__(self, header_str: str, sequence: str | list[str]):
+        (self._sequence_id, self._header_info) = FASTASequence._parse_header(
+            header_str
+        )
         self._sequence_name = JsonUtils.as_json_string(
-            self._header_info,
-            indent=None
+            self._header_info, indent=None
         )
         self._sequence = NucleotideUtils.create_sequence(
-            sequence,
-            self._sequence_name
+            sequence, self._sequence_name
         )
 
     @property
@@ -52,10 +46,7 @@ class FASTASequence:
     def _parse_header(header_str: str) -> tuple[str, dict[str, str]]:
         if not FASTAUtils.is_fasta_header(header_str):
             return None
-        header_str = header_str.replace(
-            FASTASequence.SEQUENCE_ID_DELIM,
-            ''
-        )
+        header_str = header_str.replace(FASTASequence.SEQUENCE_ID_DELIM, '')
 
         # Grab the individual fields of the header
         sequence_id = None
@@ -74,18 +65,18 @@ class FASTASequence:
 
 
 class FASTAUtils:
-    '''FASTAUtils'''
+    """FASTAUtils"""
 
     _SEQUENCE_IDENTIFIER_DELIM = '>'
 
     @staticmethod
     def is_fasta_header(line_str: str) -> bool:
-        return ((len(line_str) > 0) and
-                (line_str[0] == FASTAUtils._SEQUENCE_IDENTIFIER_DELIM))
+        return (len(line_str) > 0) and (
+            line_str[0] == FASTAUtils._SEQUENCE_IDENTIFIER_DELIM
+        )
 
     @staticmethod
-    def parse_file(
-            file_path: str | os.PathLike) -> list[FASTASequence]:
+    def parse_file(file_path: str | os.PathLike) -> list[FASTASequence]:
         fasta_file_lines = []
         with open(file_path, 'r', encoding='utf-8') as i_file:
             for line in i_file:
@@ -98,15 +89,17 @@ class FASTAUtils:
                 header_str = fasta_file_lines[line_index]
                 line_index += 1
                 sequence_start_index = line_index
-                while ((line_index < len(fasta_file_lines)) and
-                       not FASTAUtils.is_fasta_header(
-                           fasta_file_lines[line_index])):
+                while (
+                    line_index < len(fasta_file_lines)
+                ) and not FASTAUtils.is_fasta_header(
+                    fasta_file_lines[line_index]
+                ):
                     line_index += 1
                 # Append a new FASTASequence object to the list
                 fasta_sequences.append(
                     FASTASequence(
                         header_str,
-                        fasta_file_lines[sequence_start_index:line_index]
+                        fasta_file_lines[sequence_start_index:line_index],
                     )
                 )
 

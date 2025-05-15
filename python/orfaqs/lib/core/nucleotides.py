@@ -1,17 +1,15 @@
-'''
+"""
 Nucleotides
-'''
+"""
+
 import logging
-from abc import (
-    ABC,
-    abstractmethod
-)
+from abc import ABC, abstractmethod
 
 _logger = logging.getLogger(__name__)
 
 
 class NucleicAcid(ABC):
-    '''NucleicAcid'''
+    """NucleicAcid"""
 
     def __init__(self):
         self._convert_to_str_using_name = False
@@ -21,10 +19,9 @@ class NucleicAcid(ABC):
 
     def __eq__(self, rhs: any) -> bool:
         if isinstance(rhs, str):
-            return ((self.name == rhs.lower()) or
-                    self.symbol == rhs.upper())
+            return (self.name == rhs.lower()) or self.symbol == rhs.upper()
         elif isinstance(rhs, NucleicAcid):
-            return ((self.name == rhs.name) and (self.symbol == rhs.symbol))
+            return (self.name == rhs.name) and (self.symbol == rhs.symbol)
 
         return False
 
@@ -53,7 +50,8 @@ class NucleicAcid(ABC):
 
 
 class _Adenine(NucleicAcid):
-    '''_Adenine'''
+    """_Adenine"""
+
     @property
     def name(self) -> str:
         return 'adenine'
@@ -64,7 +62,8 @@ class _Adenine(NucleicAcid):
 
 
 class _Cytosine(NucleicAcid):
-    '''_Cytosine'''
+    """_Cytosine"""
+
     @property
     def name(self) -> str:
         return 'cytosine'
@@ -75,7 +74,8 @@ class _Cytosine(NucleicAcid):
 
 
 class _Guanine(NucleicAcid):
-    '''_Guanine'''
+    """_Guanine"""
+
     @property
     def name(self) -> str:
         return 'guanine'
@@ -86,7 +86,8 @@ class _Guanine(NucleicAcid):
 
 
 class _Thymine(NucleicAcid):
-    '''_Thymine'''
+    """_Thymine"""
+
     @property
     def name(self) -> str:
         return 'thymine'
@@ -97,7 +98,8 @@ class _Thymine(NucleicAcid):
 
 
 class _Uracil(NucleicAcid):
-    '''_Uracil'''
+    """_Uracil"""
+
     @property
     def name(self) -> str:
         return 'uracil'
@@ -118,7 +120,7 @@ _NUCLEIC_ACID_SYMBOL_LUT = {
     CYTOSINE.symbol: CYTOSINE,
     GUANINE.symbol: GUANINE,
     THYMINE.symbol: THYMINE,
-    URACIL.symbol: URACIL
+    URACIL.symbol: URACIL,
 }
 
 _NUCLEIC_ACID_NAME_LUT = {
@@ -126,16 +128,16 @@ _NUCLEIC_ACID_NAME_LUT = {
     CYTOSINE.name: CYTOSINE,
     GUANINE.name: GUANINE,
     THYMINE.name: THYMINE,
-    URACIL.name: URACIL
+    URACIL.name: URACIL,
 }
 
 
 class GenomicSequence:
-    '''GenomicSequence'''
+    """GenomicSequence"""
 
-    def __init__(self,
-                 sequence: (str | list[str] | list[NucleicAcid]),
-                 name: str = None):
+    def __init__(
+        self, sequence: (str | list[str] | list[NucleicAcid]), name: str = None
+    ):
         self._sequence_str: str
         self._name = name
 
@@ -145,9 +147,11 @@ class GenomicSequence:
         sequence = sequence.lower()
         for base in sequence:
             if base not in list(self.available_bases()):
-                message = (f'[ERROR] The following symbol {base} is not '
-                           'allowed in GenomicSequence object\'s of type: '
-                           f'{self.__class__.__name__}')
+                message = (
+                    f'[ERROR] The following symbol {base} is not '
+                    "allowed in GenomicSequence object's of type: "
+                    f'{self.__class__.__name__}'
+                )
                 _logger.error(message)
                 raise ValueError(message)
 
@@ -221,7 +225,8 @@ class GenomicSequence:
             sequence_pattern_str = sequence_pattern.sequence_str
         elif isinstance(sequence_pattern, list):
             sequence_pattern_str = self.__class__(
-                sequence_pattern).sequence_str
+                sequence_pattern
+            ).sequence_str
 
         if isinstance(sequence_pattern_str, str):
             return self._sequence_str(sequence_pattern_str)
@@ -237,7 +242,8 @@ class GenomicSequence:
 
 
 class DNASequence(GenomicSequence):
-    '''DNASequence'''
+    """DNASequence"""
+
     @staticmethod
     def available_bases() -> list[NucleicAcid]:
         return list([ADENINE, THYMINE, CYTOSINE, GUANINE])
@@ -245,8 +251,9 @@ class DNASequence(GenomicSequence):
     @staticmethod
     def base_compliment(base: str | NucleicAcid) -> NucleicAcid:
         if base not in DNASequence.available_bases():
-            message = (f'[ERROR] {base} is not recognized as a nucleic acid '
-                       'for DNA')
+            message = (
+                f'[ERROR] {base} is not recognized as a nucleic acid for DNA'
+            )
             _logger.error(message)
             raise ValueError(message)
 
@@ -263,7 +270,8 @@ class DNASequence(GenomicSequence):
 
 
 class RNASequence(GenomicSequence):
-    '''RNASequence'''
+    """RNASequence"""
+
     @staticmethod
     def available_bases() -> list[NucleicAcid]:
         return [ADENINE, URACIL, CYTOSINE, GUANINE]
@@ -271,8 +279,9 @@ class RNASequence(GenomicSequence):
     @staticmethod
     def base_compliment(base: str | NucleicAcid) -> NucleicAcid:
         if base not in RNASequence.available_bases():
-            message = (f'[ERROR] {base} is not recognized as a nucleic acid '
-                       'for RNA')
+            message = (
+                f'[ERROR] {base} is not recognized as a nucleic acid for RNA'
+            )
             _logger.error(message)
             raise ValueError(message)
 
@@ -289,31 +298,30 @@ class RNASequence(GenomicSequence):
 
 
 class NucleotideUtils:
-    '''NucleotideUtils'''
+    """NucleotideUtils"""
 
     @staticmethod
     def create_sequence(
-            sequence: (str |
-                       list[str] |
-                       list[NucleicAcid]),
-            name: str = None) -> GenomicSequence:
+        sequence: (str | list[str] | list[NucleicAcid]), name: str = None
+    ) -> GenomicSequence:
         try:
             return DNASequence(sequence, name)
         except ValueError:
             try:
                 return RNASequence(sequence, name)
             except ValueError as e:
-                message = ('[ERROR] The sequence could not be interpreted as '
-                           'a DNA sequence or an RNA sequence. Check the '
-                           'input for errors.')
+                message = (
+                    '[ERROR] The sequence could not be interpreted as '
+                    'a DNA sequence or an RNA sequence. Check the '
+                    'input for errors.'
+                )
                 _logger.error(message)
                 raise ValueError(message) from e
 
     @staticmethod
     def is_dna_sequence(
-            sequence: (str |
-                       list[str] |
-                       list[NucleicAcid])) -> bool:
+        sequence: (str | list[str] | list[NucleicAcid]),
+    ) -> bool:
         if isinstance(sequence, list):
             sequence = ''.join(sequence)
 
@@ -325,9 +333,8 @@ class NucleotideUtils:
 
     @staticmethod
     def is_rna_sequence(
-            sequence: (str |
-                       list[str] |
-                       list[NucleicAcid])) -> bool:
+        sequence: (str | list[str] | list[NucleicAcid]),
+    ) -> bool:
         if isinstance(sequence, list):
             sequence = ''.join(sequence)
 
@@ -339,21 +346,11 @@ class NucleotideUtils:
 
     @staticmethod
     def dna_nucleotides() -> list[NucleicAcid]:
-        return list([
-            ADENINE,
-            THYMINE,
-            GUANINE,
-            CYTOSINE
-        ])
+        return list([ADENINE, THYMINE, GUANINE, CYTOSINE])
 
     @staticmethod
     def rna_nucleotides() -> list[NucleicAcid]:
-        return list([
-            ADENINE,
-            URACIL,
-            GUANINE,
-            CYTOSINE
-        ])
+        return list([ADENINE, URACIL, GUANINE, CYTOSINE])
 
     @staticmethod
     def convert_to_rna_base(base: NucleicAcid) -> NucleicAcid:

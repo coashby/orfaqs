@@ -1,13 +1,14 @@
-'''
+"""
 Directory Utils
-'''
+"""
+
 import os
 import pathlib
 import shutil
 
 
 class DirectoryUtils:
-    '''DirectoryUtils'''
+    """DirectoryUtils"""
 
     @staticmethod
     def is_directory(path):
@@ -81,7 +82,7 @@ class DirectoryUtils:
         file_name_str = str(output_path.name)
         # Find the last occurrence of '.' for an extension
         for i in range(len(file_name_str)):
-            r_index = -(i+1)
+            r_index = -(i + 1)
             if file_name_str[r_index] == '/':
                 break
             if file_name_str[r_index] == '.':

@@ -1,18 +1,16 @@
-'''
+"""
 Codons
 Contains definitions for all 64 codons.
-'''
+"""
+
 import logging
 
-from abc import (
-    ABC,
-    abstractmethod
-)
+from abc import ABC, abstractmethod
 
 from orfaqs.lib.core.nucleotides import (
     NucleicAcid,
     NucleotideUtils,
-    RNASequence
+    RNASequence,
 )
 
 
@@ -20,7 +18,8 @@ _logger = logging.getLogger(__name__)
 
 
 class Codon(ABC):
-    '''Codon'''
+    """Codon"""
+
     _NUMBER_BASES_IN_CODON = 3
     _sequence: RNASequence = None
 
@@ -37,11 +36,13 @@ class Codon(ABC):
         elif isinstance(rhs, str):
             return self.sequence_str.upper() == rhs.upper()
         elif isinstance(rhs, list):
-            if (len(rhs) != Codon._NUMBER_BASES_IN_CODON):
+            if len(rhs) != Codon._NUMBER_BASES_IN_CODON:
                 return False
             if isinstance(rhs[0], NucleicAcid):
-                return (self.sequence_str ==
-                        NucleotideUtils.convert_to_sequence_str(rhs))
+                return (
+                    self.sequence_str
+                    == NucleotideUtils.convert_to_sequence_str(rhs)
+                )
 
         return False
 
@@ -526,7 +527,7 @@ _AVAILABLE_CODONS: list[Codon] = [
     GGU,
     GGC,
     GGA,
-    GGG
+    GGG,
 ]
 
 _BASE_TRIPLET_CODON_LUT = {
@@ -548,10 +549,12 @@ class CodonUtils:
         if isinstance(base_triplet, str):
             base_triplet = RNASequence(base_triplet)
         if len(base_triplet) != CodonUtils.number_bases_per_codon():
-            message = ('[ERROR] Invalid base_triplet.\n'
-                       f'len(\'{base_triplet}\') == {len(base_triplet)}.\n'
-                       'Expected len(base_triplet) == '
-                       f'{CodonUtils.number_bases_per_codon()}.\n')
+            message = (
+                '[ERROR] Invalid base_triplet.\n'
+                f"len('{base_triplet}') == {len(base_triplet)}.\n"
+                'Expected len(base_triplet) == '
+                f'{CodonUtils.number_bases_per_codon()}.\n'
+            )
             _logger.error(message)
             raise ValueError(message)
 

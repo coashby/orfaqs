@@ -1,6 +1,6 @@
-'''
+"""
 JSON Utils
-'''
+"""
 
 import enum
 import json
@@ -18,7 +18,7 @@ _JSON_FILE_EXTENSION = '.json'
 
 
 class JsonUtils:
-    '''JsonUtils'''
+    """JsonUtils"""
 
     @staticmethod
     def json_file_extension():
@@ -50,16 +50,19 @@ class JsonUtils:
             try:
                 value = str(value)
             except ValueError as error:
-                message = ('[ERROR] Could not find an appropriate conversion'
-                           f'for the input value... {error}')
+                message = (
+                    '[ERROR] Could not find an appropriate conversion'
+                    f'for the input value... {error}'
+                )
                 _logger.error(message)
                 return None
 
         return value
 
     @staticmethod
-    def read_json(json_input: str | os.PathLike,
-                  raise_exceptions: bool = True):
+    def read_json(
+        json_input: str | os.PathLike, raise_exceptions: bool = True
+    ):
         json_contents = None
         if DirectoryUtils.is_file(json_input):
             try:
@@ -90,9 +93,7 @@ class JsonUtils:
                 json_contents = json.loads(json_input)
 
             except JSONDecodeError as error:
-                message = (
-                    f'[ERROR: JSONDecodeError] {error}'
-                )
+                message = f'[ERROR: JSONDecodeError] {error}'
                 _logger.error(message)
 
                 if raise_exceptions:
@@ -101,10 +102,7 @@ class JsonUtils:
         return json_contents
 
     @staticmethod
-    def write_json(file_path_str,
-                   content,
-                   mode='w',
-                   indent=None):
+    def write_json(file_path_str, content, mode='w', indent=None):
         try:
             file_path = DirectoryUtils.make_path_object(file_path_str)
             DirectoryUtils.mkdir_path(file_path.parent)
@@ -119,8 +117,9 @@ class JsonUtils:
 
     @staticmethod
     def write_json_pretty_print(file_path_str, content, mode='w'):
-        JsonUtils.write_json(file_path_str, content, mode,
-                             indent=_JSON_DEFAULT_INDENT)
+        JsonUtils.write_json(
+            file_path_str, content, mode, indent=_JSON_DEFAULT_INDENT
+        )
 
     @staticmethod
     def as_json_string(content, indent=_JSON_DEFAULT_INDENT):

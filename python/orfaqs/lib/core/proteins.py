@@ -1,15 +1,18 @@
-'''
+"""
 Proteins
-'''
+"""
+
 from orfaqs.lib.core.aminoacids import AminoAcid
 
 
 class Protein:
-    '''Protein'''
+    """Protein"""
 
-    def __init__(self,
-                 amino_acid: AminoAcid | list[AminoAcid] = None,
-                 protein_name: str = None):
+    def __init__(
+        self,
+        amino_acid: AminoAcid | list[AminoAcid] = None,
+        protein_name: str = None,
+    ):
         if amino_acid is None:
             amino_acid = []
         elif isinstance(amino_acid, AminoAcid):

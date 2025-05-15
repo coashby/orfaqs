@@ -8,20 +8,18 @@ class CliUtil:
 
     @staticmethod
     def _format_text(text):
-
-        return '\n'.join(textwrap.wrap(
-            text,
-            width=CliUtil._DEFAULT_ARG_HELP_TEXT_WIDTH,
-            break_long_words=False))
+        return '\n'.join(
+            textwrap.wrap(
+                text,
+                width=CliUtil._DEFAULT_ARG_HELP_TEXT_WIDTH,
+                break_long_words=False,
+            )
+        )
 
     @staticmethod
     def create_new_arg_descriptor(
-            name_or_flags,
-            arg_help=None,
-            action=None,
-            arg_type=None,
-            default=None):
-
+        name_or_flags, arg_help=None, action=None, arg_type=None, default=None
+    ):
         arg_descriptor = {}
 
         if arg_help and isinstance(arg_help, str):
@@ -42,18 +40,13 @@ class CliUtil:
 
     @staticmethod
     def create_arg_parser(
-            arg_descriptor_list,
-            program_name=None,
-            description=None,
-            epilog=None):
+        arg_descriptor_list, program_name=None, description=None, epilog=None
+    ):
         arg_parser = ArgumentParser(
-            prog=program_name,
-            description=description,
-            epilog=epilog
+            prog=program_name, description=description, epilog=epilog
         )
         for name_or_flags, arg_descriptor in arg_descriptor_list:
-            arg_parser.add_argument(
-                *name_or_flags, **arg_descriptor)
+            arg_parser.add_argument(*name_or_flags, **arg_descriptor)
 
         return arg_parser
 

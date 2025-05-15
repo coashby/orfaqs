@@ -1,18 +1,16 @@
-'''
+"""
 Orfaqs App
-'''
+"""
+
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
 
-from abc import (
-    ABC,
-    abstractmethod
-)
+from abc import ABC, abstractmethod
 
 from orfaqs.lib.utils.perfutils import PerfProfiler
 
 
 class ORFaqsApp(ABC):
-    '''OrfaqsApp'''
+    """OrfaqsApp"""
 
     @staticmethod
     @abstractmethod

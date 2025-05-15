@@ -1,11 +1,8 @@
-from abc import (
-    ABC,
-    abstractmethod
-)
+from abc import ABC, abstractmethod
 
 
 class AminoAcid(ABC):
-    '''AminoAcid'''
+    """AminoAcid"""
 
     def __hash__(self):
         return hash(self.abbreviation)
@@ -36,7 +33,7 @@ class AminoAcid(ABC):
 
 
 class _Alanine(AminoAcid):
-    '''_Alanine'''
+    """_Alanine"""
 
     @property
     def name(self) -> str:
@@ -52,7 +49,7 @@ class _Alanine(AminoAcid):
 
 
 class _Arginine(AminoAcid):
-    '''_Arginine'''
+    """_Arginine"""
 
     @property
     def name(self) -> str:
@@ -68,7 +65,7 @@ class _Arginine(AminoAcid):
 
 
 class _Asparagine(AminoAcid):
-    '''_Asparagine'''
+    """_Asparagine"""
 
     @property
     def name(self) -> str:
@@ -84,7 +81,7 @@ class _Asparagine(AminoAcid):
 
 
 class _Aspartate(AminoAcid):
-    '''_Aspartate'''
+    """_Aspartate"""
 
     @property
     def name(self) -> str:
@@ -100,7 +97,7 @@ class _Aspartate(AminoAcid):
 
 
 class _Cysteine(AminoAcid):
-    '''_Cysteine'''
+    """_Cysteine"""
 
     @property
     def name(self) -> str:
@@ -116,7 +113,7 @@ class _Cysteine(AminoAcid):
 
 
 class _Glutamine(AminoAcid):
-    '''_Glutamine'''
+    """_Glutamine"""
 
     @property
     def name(self) -> str:
@@ -132,7 +129,7 @@ class _Glutamine(AminoAcid):
 
 
 class _Glutamate(AminoAcid):
-    '''_Glutamate'''
+    """_Glutamate"""
 
     @property
     def name(self) -> str:
@@ -148,7 +145,7 @@ class _Glutamate(AminoAcid):
 
 
 class _Glycine(AminoAcid):
-    '''_Glycine'''
+    """_Glycine"""
 
     @property
     def name(self) -> str:
@@ -164,7 +161,7 @@ class _Glycine(AminoAcid):
 
 
 class _Histidine(AminoAcid):
-    '''_Histidine'''
+    """_Histidine"""
 
     @property
     def name(self) -> str:
@@ -180,7 +177,7 @@ class _Histidine(AminoAcid):
 
 
 class _Isoleucine(AminoAcid):
-    '''_Isoleucine'''
+    """_Isoleucine"""
 
     @property
     def name(self) -> str:
@@ -196,7 +193,7 @@ class _Isoleucine(AminoAcid):
 
 
 class _Leucine(AminoAcid):
-    '''_Leucine'''
+    """_Leucine"""
 
     @property
     def name(self) -> str:
@@ -212,7 +209,7 @@ class _Leucine(AminoAcid):
 
 
 class _Lysine(AminoAcid):
-    '''_Lysine'''
+    """_Lysine"""
 
     @property
     def name(self) -> str:
@@ -228,7 +225,7 @@ class _Lysine(AminoAcid):
 
 
 class _Methionine(AminoAcid):
-    '''_Methionine'''
+    """_Methionine"""
 
     @property
     def name(self) -> str:
@@ -244,7 +241,7 @@ class _Methionine(AminoAcid):
 
 
 class _Phenylalanine(AminoAcid):
-    '''_Phenylalanine'''
+    """_Phenylalanine"""
 
     @property
     def name(self) -> str:
@@ -260,7 +257,7 @@ class _Phenylalanine(AminoAcid):
 
 
 class _Proline(AminoAcid):
-    '''_Proline'''
+    """_Proline"""
 
     @property
     def name(self) -> str:
@@ -276,7 +273,7 @@ class _Proline(AminoAcid):
 
 
 class _Serine(AminoAcid):
-    '''_Serine'''
+    """_Serine"""
 
     @property
     def name(self) -> str:
@@ -292,7 +289,7 @@ class _Serine(AminoAcid):
 
 
 class _Threonine(AminoAcid):
-    '''_Threonine'''
+    """_Threonine"""
 
     @property
     def name(self) -> str:
@@ -308,7 +305,7 @@ class _Threonine(AminoAcid):
 
 
 class _Tryptophan(AminoAcid):
-    '''_Tryptophan'''
+    """_Tryptophan"""
 
     @property
     def name(self) -> str:
@@ -324,7 +321,7 @@ class _Tryptophan(AminoAcid):
 
 
 class _Tyrosine(AminoAcid):
-    '''_Tyrosine'''
+    """_Tyrosine"""
 
     @property
     def name(self) -> str:
@@ -340,7 +337,7 @@ class _Tyrosine(AminoAcid):
 
 
 class _Valine(AminoAcid):
-    '''_Valine'''
+    """_Valine"""
 
     @property
     def name(self) -> str:
@@ -356,7 +353,7 @@ class _Valine(AminoAcid):
 
 
 class _Selenocysteine(AminoAcid):
-    '''_Selenocysteine'''
+    """_Selenocysteine"""
 
     @property
     def name(self) -> str:
@@ -372,7 +369,7 @@ class _Selenocysteine(AminoAcid):
 
 
 class _Pyrrolysine(AminoAcid):
-    '''_Pyrrolysine'''
+    """_Pyrrolysine"""
 
     @property
     def name(self) -> str:
@@ -433,7 +430,7 @@ _AVAILABLE_AMINO_ACIDS: list[AminoAcid] = [
     TYROSINE,
     VALINE,
     SELENOCYSTEINE,
-    PYRROLYSINE
+    PYRROLYSINE,
 ]
 
 _AMINO_ACID_SYMBOL_LUT = {
@@ -442,7 +439,8 @@ _AMINO_ACID_SYMBOL_LUT = {
 
 
 class AminoAcidUtils:
-    '''AminoAcidUtils'''
+    """AminoAcidUtils"""
+
     @staticmethod
     def available_amino_acids() -> list[AminoAcid]:
         return _AVAILABLE_AMINO_ACIDS
