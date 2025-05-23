@@ -6,8 +6,8 @@ a start/stop codon pair.
 With ORFaqs you can:
 - **Discover**: Define regions of interest within a genomic sequence and
 discover all segments that lie between a defined set of start and stop codons.
-- **Query**: Filter results from the discovery stage. For example
-- **Model**
+- **Query**: Filter results from the discovery stage _(coming soon)_.
+- **Model**: Perform statical and structural modeling analysis on discovered proteins using a variety of tools _(coming soon)_.
 
 ## Quick Start Guides
 - [Setting Up Your Dev Environment](docs/quick-start-quides/setting-up-your-dev-environment.md)
