@@ -3,6 +3,7 @@ FASTA Utils
 """
 
 import os
+import re
 
 from orfaqs.lib.core.nucleotides import GenomicSequence, NucleotideUtils
 from orfaqs.lib.utils.jsonutils import JsonUtils
@@ -60,6 +61,11 @@ class FASTASequence:
             header_info[FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION] = (
                 ' '.join(header_fields[1:])
             )
+
+        # Remove all non-alphanumeric characters from the sequence_id.
+        sequence_id = re.sub(r'[^a-zA-Z0-9]', '-', sequence_id)
+        if sequence_id[-1] == '-':
+            sequence_id = sequence_id[0:-1]
 
         return (sequence_id, header_info)
 

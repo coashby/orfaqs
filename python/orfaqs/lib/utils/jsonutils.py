@@ -64,7 +64,14 @@ class JsonUtils:
         json_input: str | os.PathLike, raise_exceptions: bool = True
     ):
         json_contents = None
-        if DirectoryUtils.is_file(json_input):
+        json_syntax_chars = '{}[],:'
+        content_is_json_file: bool = True
+        for syntax_char in json_syntax_chars:
+            if syntax_char in json_input:
+                content_is_json_file = False
+                break
+
+        if content_is_json_file:
             try:
                 with open(json_input, 'r', encoding='utf-8') as i_file:
                     json_contents = json.load(i_file)
