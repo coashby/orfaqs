@@ -7,7 +7,7 @@ class TestAminoAcidsUtils:
 
     def test_available_amino_acids(self):
         reference_amino_acids_file_path = (
-            'orfaqs/tests/resources/reference_amino_acids.csv'
+            './orfaqs/tests/resources/reference_amino_acids.csv'
         )
         reference_amino_acids_dataframe = pd.read_csv(
             reference_amino_acids_file_path
