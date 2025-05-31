@@ -180,9 +180,23 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
         file_path: str | pathlib.Path,
     ) -> list[dict[str, any]]:
         records_list: list[dict[str, any]] = []
-        with open(file_path, 'r', encoding='utf-8') as i_file:
-            for line in i_file:
-                records_list.append(JsonUtils.read_json(line.strip()))
+        try:
+            with open(file_path, 'r', encoding='utf-8') as i_file:
+                for line in i_file:
+                    records_list.append(JsonUtils.read_json(line.strip()))
+        except FileNotFoundError as e:
+            message = (
+                '[Warning] The file provided could not be found while '
+                'running _read_intermediate_records_file. '
+                'Continuing...\n'
+                '(debug) -> \n'
+                '\tThis may be the result of an ERROR, or that an '
+                'empty protein list was returned and the file path was '
+                'not properly cleared.\n'
+                f'{e}'
+            )
+            _logger.warning(message)
+            print(message)
 
         return records_list
 
@@ -455,8 +469,11 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             result_files_list: list[pathlib.Path] = []
             for return_queue in return_queue_list:
                 (protein_list, results_file_path) = return_queue.get()
-                protein_map[reading_frame] += protein_list
-                result_files_list.append(results_file_path)
+                # Update the protein map and results file list iff.
+                # protein_list is not empty.
+                if len(protein_list) > 0:
+                    protein_map[reading_frame] += protein_list
+                    result_files_list.append(results_file_path)
 
             protein_count += len(protein_map[reading_frame])
             message = f'[INFO] Protein Count: {protein_count}'
