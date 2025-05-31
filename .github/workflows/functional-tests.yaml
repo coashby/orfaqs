@@ -27,7 +27,6 @@ jobs:
       with:
         python-version: '3.12'
     - name: Set PYTHONPATH in GitHub actions environment
-      uses: actions/setup-python@v5
       run: |
         echo 'PYTHONPATH=./python' >> $GITHUB_ENV
     - name: Install dependencies
