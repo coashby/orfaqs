@@ -1,3 +1,7 @@
+"""
+Abstraction of the 22 naturally occurring amino acids.
+"""
+
 from abc import ABC, abstractmethod
 
 
