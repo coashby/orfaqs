@@ -26,6 +26,8 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+    - name: Set PYTHONPATH environment variable
+      uses: actions/setup-python@v5
       run: |
         echo 'PYTHONPATH=./python' >> $GITHUB_ENV
     - name: Install dependencies
