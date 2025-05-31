@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ['3.12']
 
     permissions:
       # Give the default GITHUB_TOKEN write permission to commit and push the
