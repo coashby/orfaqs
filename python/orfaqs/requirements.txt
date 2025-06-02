@@ -5,6 +5,9 @@ openpyxl
 pandas
 pre-commit
 pyinstaller
+pytest
+pytest-cov
+pytest-datadir
 ruff
 setuptools
 tqdm
