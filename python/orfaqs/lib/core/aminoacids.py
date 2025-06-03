@@ -1,3 +1,8 @@
+"""
+Amino Acids
+Contains definitions for all genetically encoded amino acids.
+"""
+
 from abc import ABC, abstractmethod
 
 
