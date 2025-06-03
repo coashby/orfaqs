@@ -23,10 +23,11 @@ def reference_amino_acids(shared_datadir) -> dict[str, dict]:
 
 
 class TestAminoAcidsUtils:
-    _amino_acid_utils = aminoacids.AminoAcidUtils()
-
-    def test_available_amino_acids(self, reference_amino_acids):
-        available_amino_acids = self._amino_acid_utils.available_amino_acids()
+    @staticmethod
+    def test_available_amino_acids(reference_amino_acids: dict[str, dict]):
+        available_amino_acids = (
+            aminoacids.AminoAcidUtils.available_amino_acids()
+        )
         assert len(reference_amino_acids) == len(available_amino_acids)
         for amino_acid in available_amino_acids:
             reference_abbreviations = reference_amino_acids.get(
