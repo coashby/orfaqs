@@ -21,8 +21,9 @@ If you are using the CLI from source, make sure you complete the items below bef
 ----
 
 The CLI allows you to:
-- Input one or more genomic sequences in FASTA file format.
+- Input one or more genomic sequences in *FASTA* file format.
 - Input a single genomic sequence as a contiguous, unbroken string.
+- Specify run configurations using a JSON formatted file or string.
 
 ### Using FASTA Files as Input
 ```
@@ -31,7 +32,7 @@ orfaqs_protein_discovery -i input_fasta.fasta
 <details>
 <summary><i>Example FASTA File Format</i></summary>
 
-Create a FASTA file by copying and pasting the text below into an empty file.
+Create a *FASTA* file by copying and pasting the text below into an empty file.
 ```
 >YAL068C PAU8 SGDID:S000002142, Chr I from 2169-1807, Genome Release 64-5-1, reverse complement, Verified ORF, "Protein of unknown function; member of the seripauperin multigene family encoded mainly in subtelomeric regions"
 ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTGCTTCTGCA
@@ -51,21 +52,22 @@ orfaqs_protein_discovery -i ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTG
 ```
 
 ### Specifying the Exported Results Format
-Three options are supported for exporting the discovered proteins:
-
-| Export Option | Export File Extension |
-|-|-|
-| `--export_as_csv` *(default option)* |`.csv` |
-| `--export_as_json` | `.json` |
-| `--export_as_excel` | `.xlsx` |
+The `export_format` option is used to control format of the discovered proteins
+results. The expected command line value for each supported format is given in
+the table below:
+| Export Format | Command Line Value | Export File Extension |
+|-|-|-|
+| **CSV** *(default option)* | `csv` |*.csv* |
+| **JSON** | `json` | *.json* |
+| **Microsoft Excel** | `xlsx` | *.xlsx* |
 
 #### Export Results in Excel Format
 ```
-orfaqs_protein_discovery -i input_fasta.fasta --export_as_excel
+orfaqs_protein_discovery -i input_fasta.fasta --export_format xlsx
 ```
 #### Export Results in JSON Format
 ```
-orfaqs_protein_discovery -i input_fasta.fasta --export_as_json
+orfaqs_protein_discovery -i input_fasta.fasta --export_format json
 ```
 
 ### Changing the Output Directory
@@ -87,6 +89,27 @@ Use the `-j, --job_id` options to add a job id directory to the output path.
 ```
 orfaqs_protein_discovery -i input_fasta.fasta -o /~/my-output-directory -j my-job-id
 ```
+### Specify Options Using a Launch JSON
+Running the application via a launch *JSON* makes saving command configurations
+easy and tractable. The sample launch *JSON* below uses all the allowed program
+options.
+```JSON
+{
+    "input_sequence": "input_fasta.fasta",
+    "output_directory": "./",
+    "job_id": "my-job-id",
+    "export_format": "csv"
+}
+```
+
+If an option is not needed, simply remove that key-value pair from the
+*JSON*. Options that are **NOT** allowed are simply ignored.
+
+Use the `--launch_json` option to run options specified in a *JSON* file.
+```
+orfaqs_protein_discovery --launch_json my-launch-json.json
+```
+
 
 ## Output Results
 ### Directory Structure
@@ -96,15 +119,16 @@ directory path:
 
 <details>
 <summary><i>(<b>NOTE</b>: Jobs ids are optional</i>)</summary>
-If <code>-j, --job_id</code> options are not specified, a <code>JOB_ID</code> sub-directory will not appear as part of the output path.
+If <code>-j, --job_id</code> options are not specified, a <code>JOB_ID</code>
+sub-directory will not appear as part of the output path.
 </details>
 </br>
 
 Within this folder:
-- **Outputs generated from FASTA files** appear in the path:
+- **Outputs generated from *FASTA* files** appear in the path:
 `<OUTPUT_DIRECTORY>/.orfaqs-apps/orfaqs-protein-discovery/<JOB_ID>/<SEQUENCE_ID>`,
-where `<SEQUENCE_ID>` is the sequence identifier found in the FASTA file for the
-corresponding sequence.
+where `<SEQUENCE_ID>` is the sequence identifier found in the *FASTA* file for
+the corresponding sequence.
 - **Outputs from sequence strings** appear directly in the directory path
 `<OUTPUT_DIRECTORY>/<JOB_ID>/.orfaqs-apps/orfaqs-protein-discovery`.
 
@@ -118,7 +142,8 @@ Each reading frame specific output file name is formatted as:
 `discovered-proteins-reading-frame-<READING_FRAME>.<EXPORT_EXTENSION>` where:
 - `<READING_FRAME>`is the index 1, 2, or 3, corresponding to the reading
 frame used when the protein was found, and
-- `<EXPORT_EXTENSION>` corresponds to the extension used by the export option selected (`.csv`, `.json`, or `.xlsx`)
+- `<EXPORT_EXTENSION>` corresponds to the extension used by the export format
+option selected (`csv`, `json`, or `xlsx`).
 
 If no proteins were found within a particular reading frame, then no output
 data are exported for that reading frame.
@@ -126,14 +151,15 @@ data are exported for that reading frame.
 #### All Discovered Proteins Outputs
 Results for all the proteins discoverd for a given sequence are formatted as:
 `discovered-proteins.<EXPORT_EXTENSION>` where:
-- `<EXPORT_EXTENSION>` corresponds to the extension used by the export option selected (`.csv`, `.json`, or `.xlsx`)
+- `<EXPORT_EXTENSION>` corresponds to the extension used by the export option
+selected (`csv`, `json`, or `xlsx`).
 
 If no proteins were found for a given protein sequence, then no output data are
 exported.
 
 #### Output File Contents
-Within each file, results are organized either as tables (in the case of `CSV`
-and `Excel` exports), or as lists of `JSON` objects (in the case of `JSON`
+Within each file, results are organized either as tables (in the case of *CSV*
+and *Excel* exports), or as lists of *JSON* objects (in the case of *JSON*
 exports). Each file contains the following information:
 
 - `reading_frame`: `(int)` The reading frame used during translation.
@@ -144,5 +170,5 @@ single-letter code names.
 - `protein_length`: `(int)` The total number of amino acids making up the
 protein sequence.
 
-The keys used in either format (columns for exported tables and keys in JSON
+The keys used in either format (columns for exported tables and keys in *JSON*
 key-value pairs) are identical.
