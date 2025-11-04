@@ -67,6 +67,17 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     ),
                     arg_type=str,
                 ),
+                CliUtil.create_new_arg_descriptor(
+                    (f'--{ORFaqsProteinDiscovery.launch_json_option_name()}'),
+                    arg_help=(
+                        'A JSON file specifying arguments and options to '
+                        "apply to the program's session. If "
+                        'arguments provided in the JSON overlap with '
+                        'arguments provided on the command line, values from '
+                        'the command line override those specified in the JSON.'
+                    ),
+                    arg_type=str,
+                ),
             ]
 
             cli_arg_parser = CliUtil.create_arg_parser(
@@ -78,8 +89,12 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                 epilog='',
             )
 
-            ui_args = CliUtil.parse_args(cli_arg_parser)
-            if 'input_sequence' not in ui_args:
+            # Process the CLI args and incorporate any
+            # values set in the launch json.
+            ui_kwargs = ORFaqsProteinDiscovery.process_ui_kwargs(
+                **CliUtil.parse_args(cli_arg_parser)
+            )
+            if 'input_sequence' not in ui_kwargs:
                 message = (
                     '[ERROR] No input file or sequence string was '
                     'specified. A valid input is required.'
@@ -88,7 +103,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                 print(message)
                 cli_arg_parser.print_help()
             else:
-                ORFaqsProteinDiscovery.run(**ui_args)
+                ORFaqsProteinDiscovery.run(**ui_kwargs)
 
         except SystemExit as e:
             if e.args[0] is True:
@@ -97,7 +112,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
     @staticmethod
     def _run(
         input_sequence: str | pathlib.Path,
-        output_directory: str | pathlib.Path,
+        output_directory: str | pathlib.Path = None,
         job_id: str = None,
         export_format: str = None,
         **kwargs,
