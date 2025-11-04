@@ -68,7 +68,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     arg_type=str,
                 ),
                 CliUtil.create_new_arg_descriptor(
-                    (f'--{ORFaqsProteinDiscovery.launch_json_option_name()}'),
+                    (f'--{ORFaqsApp.launch_json_option_name()}'),
                     arg_help=(
                         'A JSON file specifying arguments and options to '
                         "apply to the program's session. If "
@@ -91,7 +91,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
 
             # Process the CLI args and incorporate any
             # values set in the launch json.
-            ui_kwargs = ORFaqsProteinDiscovery.process_ui_kwargs(
+            ui_kwargs = ORFaqsApp.process_ui_kwargs(
                 **CliUtil.parse_args(cli_arg_parser)
             )
             if 'input_sequence' not in ui_kwargs:

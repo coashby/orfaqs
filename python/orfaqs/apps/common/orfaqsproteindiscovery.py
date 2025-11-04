@@ -44,14 +44,14 @@ class _ProfilingFunctionName(enum.Enum):
     TRANSLATE_RNA_GROUP = enum.auto()
 
 
-class _ExportFormat(enum.Enum):
-    CSV = 'csv'
-    JSON = 'json'
-    XLSX = 'xlsx'
-
-
-_AVAILABLE_EXPORT_FORMATS = [format.value for format in _ExportFormat]
-_EXPORT_FORMAT_OPTIONS = typing.Literal[*tuple(_AVAILABLE_EXPORT_FORMATS)]
+_ExportFormatOptions = typing.Literal['csv', 'json', 'xlsx']
+_AVAILABLE_EXPORT_FORMATS: list[str] = [
+    format for format in _ExportFormatOptions.__args__
+]
+_ExportFormat = enum.Enum(
+    '_ExportFormat',
+    [(format.upper(), format.lower()) for format in _AVAILABLE_EXPORT_FORMATS],
+)
 
 
 class ORFaqsProteinDiscoveryRecord:
@@ -240,7 +240,7 @@ class ORFaqsProteinDiscoveryUtils:
     def _export_intermediate_results(
         output_file_path: (str | pathlib.Path),
         file_paths: list[str | pathlib.Path],
-        export_format: _EXPORT_FORMAT_OPTIONS,
+        export_format: _ExportFormatOptions,
     ) -> pathlib.Path:
         #######################################################################
         # Read all stored records.
@@ -416,7 +416,7 @@ class ORFaqsProteinDiscoveryUtils:
         start_codons: list[Codon] = None,
         stop_codons: list[Codon] = None,
         output_directory: str | pathlib.Path = None,
-        export_format: _ExportFormat = None,
+        export_format: _ExportFormatOptions = None,
     ) -> tuple[dict, int]:
         _perf_profiler.start_perf_timer(
             _ProfilingFunctionName.PROTEIN_DISCOVERY_GENOMIC_SEQUENCE
@@ -572,7 +572,7 @@ class ORFaqsProteinDiscoveryUtils:
     @staticmethod
     def process_genomic_sequence(
         genomic_sequence: str | GenomicSequence,
-        export_format: _ExportFormat = None,
+        export_format: _ExportFormatOptions = None,
         output_directory: str | pathlib.Path = None,
     ):
         if export_format is None:
@@ -613,7 +613,7 @@ class ORFaqsProteinDiscoveryUtils:
     @staticmethod
     def process_fasta_file(
         fasta_file_path: str | pathlib.Path,
-        export_format: _EXPORT_FORMAT_OPTIONS = None,
+        export_format: _ExportFormatOptions = None,
         output_directory: str | pathlib.Path = None,
     ):
         if export_format is None:
