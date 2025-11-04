@@ -63,7 +63,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     arg_help=(
                         'Defines the exported format of the resulting data. '
                         'Supported formats are: '
-                        f'{ORFaqsProteinDiscoveryUtils.available_export_formats()}'
+                        f'{ORFaqsProteinDiscoveryUtils.available_export_formats()}.'
                     ),
                     arg_type=str,
                 ),

@@ -50,7 +50,7 @@ class _ExportFormat(enum.Enum):
     XLSX = 'xlsx'
 
 
-_AVAILABLE_EXPORT_FORMATS = [format for format in _ExportFormat]
+_AVAILABLE_EXPORT_FORMATS = [format.value for format in _ExportFormat]
 _EXPORT_FORMAT_OPTIONS = typing.Literal[*tuple(_AVAILABLE_EXPORT_FORMATS)]
 
 
