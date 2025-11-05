@@ -44,14 +44,20 @@ class _ProfilingFunctionName(enum.Enum):
     TRANSLATE_RNA_GROUP = enum.auto()
 
 
-_ExportFormatOptions = typing.Literal['csv', 'json', 'xlsx']
+class ExportFormat:
+    CSV = 'csv'
+    JSON = 'json'
+    XLSX = 'xlsx'
+
+
+_ExportFormatOptions = typing.Literal[
+    ExportFormat.CSV,
+    ExportFormat.JSON,
+    ExportFormat.XLSX,
+]
 _AVAILABLE_EXPORT_FORMATS: list[str] = [
     format for format in _ExportFormatOptions.__args__
 ]
-_ExportFormat = enum.Enum(
-    '_ExportFormat',
-    [(format.upper(), format.lower()) for format in _AVAILABLE_EXPORT_FORMATS],
-)
 
 
 class ORFaqsProteinDiscoveryRecord:
@@ -133,7 +139,7 @@ class ORFaqsProteinDiscoveryUtils:
 
     @staticmethod
     def default_export_format() -> str:
-        return _ExportFormat.CSV.value
+        return ExportFormat.CSV
 
     @staticmethod
     def default_output_directory() -> str:
@@ -157,11 +163,11 @@ class ORFaqsProteinDiscoveryUtils:
         exported_file_type = DirectoryUtils.make_path_object(
             results_file
         ).suffix.lower()
-        if _ExportFormat.CSV.value in exported_file_type:
+        if ExportFormat.CSV in exported_file_type:
             results_dataframe = pd.read_csv(results_file, index_col=0)
-        elif _ExportFormat.JSON.value in exported_file_type:
+        elif ExportFormat.JSON in exported_file_type:
             results_dataframe = pd.read_json(results_file)
-        elif _ExportFormat.XLSX.value in exported_file_type:
+        elif ExportFormat.XLSX in exported_file_type:
             results_dataframe = pd.read_excel(results_file, index_col=0)
 
         return results_dataframe
@@ -268,22 +274,22 @@ class ORFaqsProteinDiscoveryUtils:
         # Export the results.
         export_format = str(export_format).lower()
         export_file_path: pathlib.Path = None
-        if _ExportFormat.CSV.value in export_format:
+        if ExportFormat.CSV in export_format:
             export_file_path = output_file_path.with_suffix(
-                f'.{_ExportFormat.CSV.value}'
+                f'.{ExportFormat.CSV}'
             )
             records_dataframe.to_csv(
                 export_file_path,
                 index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
             )
-        elif _ExportFormat.JSON.value in export_format:
+        elif ExportFormat.JSON in export_format:
             export_file_path = output_file_path.with_suffix(
-                f'.{_ExportFormat.JSON.value}'
+                f'.{ExportFormat.JSON}'
             )
             records_dataframe.to_json(export_file_path)
-        elif _ExportFormat.XLSX.value in export_format:
+        elif ExportFormat.XLSX in export_format:
             export_file_path = output_file_path.with_suffix(
-                f'.{_ExportFormat.XLSX.value}'
+                f'.{ExportFormat.XLSX}'
             )
             records_dataframe.to_excel(
                 export_file_path,
@@ -302,7 +308,7 @@ class ORFaqsProteinDiscoveryUtils:
     def _group_exported_reading_frame_results(
         output_file_path: (str | pathlib.Path),
         file_paths: list[str | pathlib.Path],
-        export_file_type: _ExportFormat,
+        export_file_type: ExportFormat,
     ):
         # Create the dataframe object. Fill it with the
         # expected data column order.
@@ -320,11 +326,11 @@ class ORFaqsProteinDiscoveryUtils:
                 print(message)
 
             reading_frame_results: pd.DataFrame = None
-            if _ExportFormat.CSV.value in export_file_type:
+            if ExportFormat.CSV in export_file_type:
                 reading_frame_results = pd.read_csv(file_path, index_col=0)
-            elif _ExportFormat.JSON.value in export_file_type:
+            elif ExportFormat.JSON in export_file_type:
                 reading_frame_results = pd.read_json(file_path)
-            elif _ExportFormat.XLSX.value in export_file_type:
+            elif ExportFormat.XLSX in export_file_type:
                 reading_frame_results = pd.read_excel(file_path, index_col=0)
             reading_frame_results = reading_frame_results.reset_index()
             reading_frame_results = reading_frame_results[record_keys]
@@ -336,18 +342,18 @@ class ORFaqsProteinDiscoveryUtils:
             )
         #######################################################################
         # Export the results.
-        if _ExportFormat.CSV.value in export_file_type:
+        if ExportFormat.CSV in export_file_type:
             grouped_results_dataframe.to_csv(
-                output_file_path.with_suffix(f'.{_ExportFormat.CSV.value}'),
+                output_file_path.with_suffix(f'.{ExportFormat.CSV}'),
                 index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
             )
-        elif _ExportFormat.JSON.value in export_file_type:
+        elif ExportFormat.JSON in export_file_type:
             grouped_results_dataframe.to_json(
-                output_file_path.with_suffix(f'.{_ExportFormat.JSON.value}')
+                output_file_path.with_suffix(f'.{ExportFormat.JSON}')
             )
-        elif _ExportFormat.XLSX.value in export_file_type:
+        elif ExportFormat.XLSX in export_file_type:
             grouped_results_dataframe.to_excel(
-                output_file_path.with_suffix(f'.{_ExportFormat.XLSX.value}'),
+                output_file_path.with_suffix(f'.{ExportFormat.XLSX}'),
                 index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
             )
 

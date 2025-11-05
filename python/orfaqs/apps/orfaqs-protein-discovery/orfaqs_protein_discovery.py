@@ -62,6 +62,8 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     ('--export_format'),
                     arg_help=(
                         'Defines the exported format of the resulting data. '
+                        'The default format is '
+                        f'{ORFaqsProteinDiscoveryUtils.default_export_format()}'
                         'Supported formats are: '
                         f'{ORFaqsProteinDiscoveryUtils.available_export_formats()}.'
                     ),
