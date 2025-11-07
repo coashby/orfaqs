@@ -20,7 +20,7 @@ class ORFaqsApp(ABC):
 
     @classmethod
     def default_output_directory(cls):
-        base_path = DirectoryUtils.make_path_object('./.orfaqs-apps/outputs')
+        base_path = DirectoryUtils.make_path_object('./.orfaqs-apps')
         formatted_program_directory = (
             cls.program_name().replace(' ', '-').lower()
         )

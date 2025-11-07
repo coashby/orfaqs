@@ -156,24 +156,63 @@ class ORFaqsProteinDiscoveryUtils:
         ] + ORFaqsProteinDiscoveryRecord.keys()
 
     @staticmethod
+    def unreferenced_accession_number() -> str:
+        "unknown_reference"
+
+    @staticmethod
+    def _export_dataframe(
+        file_path: (str | os.PathLike),
+        dataframe: pd.DataFrame,
+        export_format: _ExportFormatOptions,
+    ) -> pathlib.Path:
+        file_path = DirectoryUtils.make_path_object(file_path)
+        if ExportFormat.CSV in export_format:
+            file_path = file_path.with_suffix(f'.{ExportFormat.CSV}')
+            dataframe.to_csv(
+                file_path,
+                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
+            )
+        elif ExportFormat.JSON in export_format:
+            file_path = file_path.with_suffix(f'.{ExportFormat.JSON}')
+            dataframe.to_json(file_path)
+        elif ExportFormat.XLSX in export_format:
+            file_path = file_path.with_suffix(f'.{ExportFormat.XLSX}')
+            dataframe.to_excel(
+                file_path,
+                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
+            )
+        return file_path
+
+    @staticmethod
     def read_results_file_as_dataframe(
-        results_file: (str | os.PathLike),
+        file_path: (str | os.PathLike),
     ) -> pd.DataFrame:
         results_dataframe: pd.DataFrame = None
-        exported_file_type = DirectoryUtils.make_path_object(
-            results_file
-        ).suffix.lower()
-        if ExportFormat.CSV in exported_file_type:
-            results_dataframe = pd.read_csv(results_file, index_col=0)
-        elif ExportFormat.JSON in exported_file_type:
-            results_dataframe = pd.read_json(results_file)
-        elif ExportFormat.XLSX in exported_file_type:
-            results_dataframe = pd.read_excel(results_file, index_col=0)
+        file_type = DirectoryUtils.make_path_object(file_path).suffix.lower()
+        if ExportFormat.CSV in file_type:
+            results_dataframe = pd.read_csv(file_path, index_col=0)
+        elif ExportFormat.JSON in file_type:
+            results_dataframe = pd.read_json(file_path)
+        elif ExportFormat.XLSX in file_type:
+            results_dataframe = pd.read_excel(file_path, index_col=0)
+        else:
+            message = (
+                '[ERROR] Input file type not recognized. Expected files types '
+                'are: '
+                f'{ORFaqsProteinDiscoveryUtils.available_export_formats()}.\n'
+                '(debug) ->\n'
+                f'\tfile_path: {file_path}\n'
+                f'\tfile_type: {file_type}'
+            )
+            _logger.error(message)
+            raise ValueError(message)
 
+        results_dataframe.reset_index(inplace=True)
         return results_dataframe
 
     @staticmethod
     def _result_file_name(
+        accession_number: str = None,
         include_date_time_stamp: bool = False,
         reading_frame: RNAReadingFrame = None,
         custom_tag: str = None,
@@ -182,6 +221,9 @@ class ORFaqsProteinDiscoveryUtils:
         file_name = 'discovered-proteins'
         if include_date_time_stamp:
             file_name = f'{timestamp_str}-{file_name}'
+
+        if accession_number is not None:
+            file_name = f'{accession_number}-{file_name}'
 
         if reading_frame is not None:
             file_name = f'{file_name}-reading-frame-{reading_frame.value}'
@@ -193,7 +235,8 @@ class ORFaqsProteinDiscoveryUtils:
 
     @staticmethod
     def _intermediate_result_file_name(
-        reading_frame: RNAReadingFrame, custom_tag: str
+        reading_frame: RNAReadingFrame,
+        custom_tag: str,
     ) -> pathlib.Path:
         return ORFaqsProteinDiscoveryUtils._result_file_name(
             include_date_time_stamp=True,
@@ -202,20 +245,38 @@ class ORFaqsProteinDiscoveryUtils:
         )
 
     @staticmethod
-    def _exported_result_file_name(
+    def _exported_reading_frame_result_file_name(
+        access_number: str,
         reading_frame: RNAReadingFrame,
     ) -> pathlib.Path:
         return ORFaqsProteinDiscoveryUtils._result_file_name(
-            include_date_time_stamp=False,
-            reading_frame=reading_frame,
-            custom_tag=None,
+            accession_number=access_number, reading_frame=reading_frame
         )
 
     @staticmethod
-    def _final_result_file_name(custom_tag: str = None) -> pathlib.Path:
-        return ORFaqsProteinDiscoveryUtils._result_file_name(
-            custom_tag=custom_tag
+    def exported_file_name(access_number: str) -> pathlib.Path:
+        exported_file_name = ORFaqsProteinDiscoveryUtils._result_file_name(
+            access_number
         )
+
+        return exported_file_name
+
+    @staticmethod
+    def validate_discovered_proteins_file(file_path: (str | os.PathLike)):
+        results_dataframe = (
+            ORFaqsProteinDiscoveryUtils.read_results_file_as_dataframe(
+                file_path
+            )
+        )
+        expected_columns = ORFaqsProteinDiscoveryRecord.keys()
+        for expected_column in expected_columns:
+            if expected_column not in results_dataframe.columns:
+                message = (
+                    f'[ERROR] Expected data column {expected_column} NOT '
+                    f'found. Expected columns are: {expected_columns}.'
+                )
+                _logger.error(message)
+                raise ValueError(message)
 
     @staticmethod
     def _read_intermediate_records_file(
@@ -243,8 +304,10 @@ class ORFaqsProteinDiscoveryUtils:
         return records_list
 
     @staticmethod
-    def _export_intermediate_results(
-        output_file_path: (str | pathlib.Path),
+    def _export_reading_frame_results(
+        accession_number: str,
+        output_directory: (str | pathlib.Path),
+        reading_frame: RNAReadingFrame,
         file_paths: list[str | pathlib.Path],
         export_format: _ExportFormatOptions,
     ) -> pathlib.Path:
@@ -268,37 +331,27 @@ class ORFaqsProteinDiscoveryUtils:
             raise FileExistsError from e
 
         #######################################################################
+        # Export the results.
+
         # Organize the results into a DataFrame object.
         records_dataframe = pd.DataFrame(records_list)
-        #######################################################################
-        # Export the results.
+
+        # Consolidate results for the given reading frame.
+        export_file_path = output_directory.joinpath(
+            ORFaqsProteinDiscoveryUtils._exported_reading_frame_result_file_name(
+                access_number=accession_number,
+                reading_frame=reading_frame,
+            )
+        )
         export_format = str(export_format).lower()
-        export_file_path: pathlib.Path = None
-        if ExportFormat.CSV in export_format:
-            export_file_path = output_file_path.with_suffix(
-                f'.{ExportFormat.CSV}'
-            )
-            records_dataframe.to_csv(
-                export_file_path,
-                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
-            )
-        elif ExportFormat.JSON in export_format:
-            export_file_path = output_file_path.with_suffix(
-                f'.{ExportFormat.JSON}'
-            )
-            records_dataframe.to_json(export_file_path)
-        elif ExportFormat.XLSX in export_format:
-            export_file_path = output_file_path.with_suffix(
-                f'.{ExportFormat.XLSX}'
-            )
-            records_dataframe.to_excel(
-                export_file_path,
-                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
-            )
+        export_file_path = ORFaqsProteinDiscoveryUtils._export_dataframe(
+            file_path=export_file_path,
+            dataframe=records_dataframe,
+            export_format=export_format,
+        )
 
         #######################################################################
-        # Remove intermediate files after all other
-        # processing has completed successfully.
+        # Remove intermediate files after all other processing has completed.
         for file_path in file_paths:
             DirectoryUtils.remove_file_path(file_path)
 
@@ -306,13 +359,14 @@ class ORFaqsProteinDiscoveryUtils:
 
     @staticmethod
     def _group_exported_reading_frame_results(
-        output_file_path: (str | pathlib.Path),
+        access_number: str,
+        output_directory: (str | pathlib.Path),
         file_paths: list[str | pathlib.Path],
-        export_file_type: ExportFormat,
+        export_format: _ExportFormatOptions,
     ):
         # Create the dataframe object. Fill it with the
         # expected data column order.
-        grouped_results_dataframe: pd.DataFrame = pd.DataFrame()
+        grouped_results_dataframe: list[pd.DataFrame] = []
         record_keys = ORFaqsProteinDiscoveryRecord.keys()
         for file_path in file_paths:
             if not DirectoryUtils.path_exists(file_path):
@@ -325,48 +379,44 @@ class ORFaqsProteinDiscoveryUtils:
                 _logger.warning(message)
                 print(message)
 
-            reading_frame_results: pd.DataFrame = None
-            if ExportFormat.CSV in export_file_type:
-                reading_frame_results = pd.read_csv(file_path, index_col=0)
-            elif ExportFormat.JSON in export_file_type:
-                reading_frame_results = pd.read_json(file_path)
-            elif ExportFormat.XLSX in export_file_type:
-                reading_frame_results = pd.read_excel(file_path, index_col=0)
-            reading_frame_results = reading_frame_results.reset_index()
-            reading_frame_results = reading_frame_results[record_keys]
-            # reading_frame_results = reading_frame_results[expected_keys]
-            grouped_results_dataframe = pd.concat(
-                [grouped_results_dataframe, reading_frame_results],
-                axis=0,
-                ignore_index=True,
+            # Read the data from file.
+            reading_frame_results = (
+                ORFaqsProteinDiscoveryUtils.read_results_file_as_dataframe(
+                    file_path
+                )
+            )
+            grouped_results_dataframe.append(
+                reading_frame_results[record_keys]
             )
         #######################################################################
         # Export the results.
-        if ExportFormat.CSV in export_file_type:
-            grouped_results_dataframe.to_csv(
-                output_file_path.with_suffix(f'.{ExportFormat.CSV}'),
-                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
-            )
-        elif ExportFormat.JSON in export_file_type:
-            grouped_results_dataframe.to_json(
-                output_file_path.with_suffix(f'.{ExportFormat.JSON}')
-            )
-        elif ExportFormat.XLSX in export_file_type:
-            grouped_results_dataframe.to_excel(
-                output_file_path.with_suffix(f'.{ExportFormat.XLSX}'),
-                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
-            )
+        final_results_dataframe = pd.concat(
+            grouped_results_dataframe,
+            axis='index',
+            ignore_index=True,
+        )
+
+        output_directory = DirectoryUtils.make_path_object(output_directory)
+        export_file_path = output_directory.joinpath(
+            ORFaqsProteinDiscoveryUtils.exported_file_name(access_number)
+        )
+        ORFaqsProteinDiscoveryUtils._export_dataframe(
+            file_path=export_file_path,
+            dataframe=final_results_dataframe,
+            export_format=export_format,
+        )
 
     @staticmethod
-    def translate_rna_group(
+    def _translate_rna_group(
         reading_frame: RNAReadingFrame,
         rna_sequence: RNASequence,
         start_codon_indices: list[int],
         start_codons: list[Codon],
         stop_codons: list[Codon],
         output_directory: str | pathlib.Path,
-        thread_index: int,
+        thread_id: int,
         result_queue: multiprocessing.Queue,
+        display_progress: bool = True,
     ):
         if len(start_codon_indices) == 0:
             message = '[INFO] EMPTY LIST'
@@ -375,18 +425,21 @@ class ORFaqsProteinDiscoveryUtils:
         protein_list: list[Protein] = []
         # For every start codon found, translate the RNA region
         # beginning at that codon.
-        process_list = tqdm(
-            start_codon_indices,
-            desc=(
-                f'[Thread {thread_index}] '
+        process_list = start_codon_indices
+        if display_progress:
+            tqdm_description = (
                 'Translating RNA from start codons in '
                 f'reading frame {reading_frame.value}...'
-            ),
-        )
+            )
+            if thread_id is not None:
+                tqdm_description = f'[Thread {thread_id}] {tqdm_description}'
+            process_list = tqdm(
+                process_list, desc=tqdm_description, total=len(process_list)
+            )
         # Create the intermediate results file.
         results_file_name = (
             ORFaqsProteinDiscoveryUtils._intermediate_result_file_name(
-                reading_frame=reading_frame, custom_tag=f'tid{thread_index}'
+                reading_frame=reading_frame, custom_tag=f'tid{thread_id}'
             )
         )
         results_file_path = DirectoryUtils.make_path_object(
@@ -406,9 +459,9 @@ class ORFaqsProteinDiscoveryUtils:
             ones_based_index_start_codon_position = start_codon_index + 1
             with open(results_file_path, 'a', encoding='utf-8') as o_file:
                 protein_record_json_str = ORFaqsProteinDiscoveryRecord(
-                    reading_frame,
-                    ones_based_index_start_codon_position,
-                    translated_protein,
+                    reading_frame=reading_frame,
+                    rna_sequence_position=ones_based_index_start_codon_position,
+                    protein=translated_protein,
                 ).condensed_record_json_str
                 o_file.write(f'{protein_record_json_str}\n')
 
@@ -418,6 +471,7 @@ class ORFaqsProteinDiscoveryUtils:
     @staticmethod
     def discover_proteins(
         rna_sequence: str | RNASequence,
+        accession_number: str = None,
         frame: RNAReadingFrame = None,
         start_codons: list[Codon] = None,
         stop_codons: list[Codon] = None,
@@ -429,6 +483,11 @@ class ORFaqsProteinDiscoveryUtils:
         )
         output_directory = DirectoryUtils.make_path_object(output_directory)
         DirectoryUtils.mkdir_path(output_directory)
+
+        if accession_number is None:
+            accession_number = (
+                ORFaqsProteinDiscoveryUtils.unreferenced_accession_number()
+            )
 
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
@@ -488,15 +547,15 @@ class ORFaqsProteinDiscoveryUtils:
             return_queue_list = [multiprocessing.Queue()] * thread_count
             group_size = math.ceil(number_start_codons / thread_count)
 
-            for thread_index in range(thread_count):
-                start_index = thread_index * group_size
+            for thread_id in range(thread_count):
+                start_index = thread_id * group_size
                 end_index = start_index + group_size
                 start_codon_indices_subset = start_codon_indices[
                     start_index:end_index
                 ]
 
-                thread_pool[thread_index] = multiprocessing.Process(
-                    target=ORFaqsProteinDiscoveryUtils.translate_rna_group,
+                thread_pool[thread_id] = multiprocessing.Process(
+                    target=ORFaqsProteinDiscoveryUtils._translate_rna_group,
                     args=(
                         reading_frame,
                         str(rna_sequence_frame),
@@ -504,12 +563,12 @@ class ORFaqsProteinDiscoveryUtils:
                         start_codons,
                         stop_codons,
                         output_directory,
-                        thread_index,
-                        return_queue_list[thread_index],
+                        thread_id,
+                        return_queue_list[thread_id],
                     ),
                 )
 
-                thread_pool[thread_index].start()
+                thread_pool[thread_id].start()
 
             ###################################################################
             # Update the protein map. Because this implementation uses queues,
@@ -529,18 +588,14 @@ class ORFaqsProteinDiscoveryUtils:
             _logger.info(message)
             print(message)
 
-            # Consolidate results for the given reading frame.
-            reading_frame_results_file_name = (
-                ORFaqsProteinDiscoveryUtils._exported_result_file_name(
-                    reading_frame=reading_frame
-                )
-            )
-            final_results_file_path = output_directory.joinpath(
-                reading_frame_results_file_name
-            )
+            ###################################################################
+            # Final discovered proteins results export.
+            # 1. Create results for the individual reading frames.
             exported_reading_frame_file_path = (
-                ORFaqsProteinDiscoveryUtils._export_intermediate_results(
-                    final_results_file_path,
+                ORFaqsProteinDiscoveryUtils._export_reading_frame_results(
+                    accession_number,
+                    output_directory,
+                    reading_frame,
                     result_files_list,
                     export_format=export_format,
                 )
@@ -549,18 +604,14 @@ class ORFaqsProteinDiscoveryUtils:
                 exported_reading_frame_file_path
             )
 
-        final_output_file_name = (
-            ORFaqsProteinDiscoveryUtils._final_result_file_name()
-        )
-        final_output_file_path = output_directory.joinpath(
-            final_output_file_name
-        )
-
+        # 2. Group the results of each reading frame into a single discovered
+        # proteins results file.
         if len(exported_reading_frame_file_paths) > 0:
             ORFaqsProteinDiscoveryUtils._group_exported_reading_frame_results(
-                final_output_file_path,
+                accession_number,
+                output_directory,
                 exported_reading_frame_file_paths,
-                export_file_type=export_format,
+                export_format=export_format,
             )
         else:
             message = (
@@ -578,6 +629,7 @@ class ORFaqsProteinDiscoveryUtils:
     @staticmethod
     def process_genomic_sequence(
         genomic_sequence: str | GenomicSequence,
+        accession_number: str = None,
         export_format: _ExportFormatOptions = None,
         output_directory: str | pathlib.Path = None,
     ):
@@ -610,10 +662,13 @@ class ORFaqsProteinDiscoveryUtils:
         (protein_map, protein_count) = (
             ORFaqsProteinDiscoveryUtils.discover_proteins(
                 rna_sequence,
+                accession_number=accession_number,
                 output_directory=output_directory,
                 export_format=export_format,
             )
         )
+        # Write the info file to the output directory
+
         return (protein_map, protein_count)
 
     @staticmethod
@@ -621,6 +676,7 @@ class ORFaqsProteinDiscoveryUtils:
         fasta_file_path: str | pathlib.Path,
         export_format: _ExportFormatOptions = None,
         output_directory: str | pathlib.Path = None,
+        display_progress: bool = True,
     ):
         if export_format is None:
             export_format = ORFaqsProteinDiscoveryUtils.default_export_format()
@@ -638,21 +694,29 @@ class ORFaqsProteinDiscoveryUtils:
         all_protein_maps = []
         protein_counts = {}
         total_protein_count = 0
-        for fasta_sequence in fasta_sequences:
+        process_list = fasta_sequences
+        if display_progress:
+            tqdm_description = 'Processing genomic sequences...'
+            process_list = tqdm(
+                process_list, desc=tqdm_description, total=len(process_list)
+            )
+
+        for fasta_sequence in process_list:
             print('-------------------------------------------------------')
             print(f'Processing Sequence: {fasta_sequence.sequence_name}')
             current_sequence_output_directory = output_directory.joinpath(
-                f'sequence-{fasta_sequence.sequence_id}'
+                f'{fasta_sequence.accession_number}'
             )
             (protein_map, protein_count) = (
                 ORFaqsProteinDiscoveryUtils.process_genomic_sequence(
                     fasta_sequence.sequence,
+                    accession_number=fasta_sequence.accession_number,
                     output_directory=current_sequence_output_directory,
                     export_format=export_format,
                 )
             )
             all_protein_maps.append(protein_map)
-            protein_counts[fasta_sequence.sequence_name] = protein_count
+            protein_counts[fasta_sequence.accession_number] = protein_count
             total_protein_count += protein_count
             print('\n')
 
