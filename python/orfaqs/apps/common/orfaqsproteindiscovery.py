@@ -60,14 +60,18 @@ _AVAILABLE_EXPORT_FORMATS: list[str] = [
 ]
 
 
-class ORFaqsProteinDiscoveryRecord:
-    """ORFaqsProteinDiscoveryRecord"""
+class ORFaqsProteinDiscoveryRecordKeys:
+    """ORFaqsProteinDiscoveryRecordKeys"""
 
     ACCESSION_NUMBER_KEY = 'accession_number'
     PROTEIN_KEY = 'protein'
     PROTEIN_LENGTH_KEY = 'protein_length'
     READING_FRAME_KEY = 'reading_frame'
     RNA_SEQUENCE_POSITION_KEY = 'rna_sequence_position'
+
+
+class ORFaqsProteinDiscoveryRecord(ORFaqsProteinDiscoveryRecordKeys):
+    """ORFaqsProteinDiscoveryRecord"""
 
     def __init__(
         self,
@@ -196,11 +200,11 @@ class ORFaqsProteinDiscoveryUtils:
         results_dataframe: pd.DataFrame = None
         file_type = DirectoryUtils.make_path_object(file_path).suffix.lower()
         if ExportFormat.CSV in file_type:
-            results_dataframe = pd.read_csv(file_path, index_col=0)
+            results_dataframe = pd.read_csv(file_path, index_col=False)
         elif ExportFormat.JSON in file_type:
             results_dataframe = pd.read_json(file_path)
         elif ExportFormat.XLSX in file_type:
-            results_dataframe = pd.read_excel(file_path, index_col=0)
+            results_dataframe = pd.read_excel(file_path, index_col=False)
         else:
             message = (
                 '[ERROR] Input file type not recognized. Expected files types '
