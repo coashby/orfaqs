@@ -63,6 +63,7 @@ _AVAILABLE_EXPORT_FORMATS: list[str] = [
 class ORFaqsProteinDiscoveryRecord:
     """ORFaqsProteinDiscoveryRecord"""
 
+    ACCESSION_NUMBER_KEY = 'accession_number'
     PROTEIN_KEY = 'protein'
     PROTEIN_LENGTH_KEY = 'protein_length'
     READING_FRAME_KEY = 'reading_frame'
@@ -70,10 +71,12 @@ class ORFaqsProteinDiscoveryRecord:
 
     def __init__(
         self,
+        accession_number: str,
         reading_frame: RNAReadingFrame,
         rna_sequence_position: int,
         protein: Protein,
     ):
+        self._accession_number = accession_number
         self._reading_frame = reading_frame
         self._rna_sequence_position = rna_sequence_position
         self._protein = protein
@@ -82,7 +85,9 @@ class ORFaqsProteinDiscoveryRecord:
     def record(self) -> dict[str, any]:
         record_map: dict[str, any] = {}
         for record_key in ORFaqsProteinDiscoveryRecord.keys():
-            if ORFaqsProteinDiscoveryRecord.READING_FRAME_KEY == record_key:
+            if ORFaqsProteinDiscoveryRecord.ACCESSION_NUMBER_KEY == record_key:
+                record_map[record_key] = self._accession_number
+            elif ORFaqsProteinDiscoveryRecord.READING_FRAME_KEY == record_key:
                 record_map[record_key] = self._reading_frame.value
             elif (
                 ORFaqsProteinDiscoveryRecord.RNA_SEQUENCE_POSITION_KEY
@@ -124,6 +129,7 @@ class ORFaqsProteinDiscoveryRecord:
     @staticmethod
     def keys() -> list[str]:
         return [
+            ORFaqsProteinDiscoveryRecord.ACCESSION_NUMBER_KEY,
             ORFaqsProteinDiscoveryRecord.READING_FRAME_KEY,
             ORFaqsProteinDiscoveryRecord.RNA_SEQUENCE_POSITION_KEY,
             ORFaqsProteinDiscoveryRecord.PROTEIN_KEY,
@@ -184,7 +190,7 @@ class ORFaqsProteinDiscoveryUtils:
         return file_path
 
     @staticmethod
-    def read_results_file_as_dataframe(
+    def read_protein_discovery_file_as_dataframe(
         file_path: (str | os.PathLike),
     ) -> pd.DataFrame:
         results_dataframe: pd.DataFrame = None
@@ -216,7 +222,7 @@ class ORFaqsProteinDiscoveryUtils:
         include_date_time_stamp: bool = False,
         reading_frame: RNAReadingFrame = None,
         custom_tag: str = None,
-    ) -> pathlib.Path:
+    ) -> str:
         timestamp_str = datetime.now().strftime('%Y%m%d-%H%M%S')
         file_name = 'discovered-proteins'
         if include_date_time_stamp:
@@ -231,42 +237,37 @@ class ORFaqsProteinDiscoveryUtils:
         if custom_tag is not None:
             file_name = f'{file_name}-{custom_tag}'
 
-        return DirectoryUtils.make_path_object(file_name).with_suffix('.txt')
+        return file_name
 
     @staticmethod
     def _intermediate_result_file_name(
         reading_frame: RNAReadingFrame,
         custom_tag: str,
-    ) -> pathlib.Path:
-        return ORFaqsProteinDiscoveryUtils._result_file_name(
+    ) -> str:
+        file_name = ORFaqsProteinDiscoveryUtils._result_file_name(
             include_date_time_stamp=True,
             reading_frame=reading_frame,
             custom_tag=custom_tag,
         )
+        return f'{file_name}.txt'
 
     @staticmethod
     def _exported_reading_frame_result_file_name(
         access_number: str,
         reading_frame: RNAReadingFrame,
-    ) -> pathlib.Path:
+    ) -> str:
         return ORFaqsProteinDiscoveryUtils._result_file_name(
             accession_number=access_number, reading_frame=reading_frame
         )
 
     @staticmethod
-    def exported_file_name(access_number: str) -> pathlib.Path:
-        exported_file_name = ORFaqsProteinDiscoveryUtils._result_file_name(
-            access_number
-        )
-
-        return exported_file_name
+    def exported_file_name(access_number: str = None) -> str:
+        return ORFaqsProteinDiscoveryUtils._result_file_name(access_number)
 
     @staticmethod
     def validate_discovered_proteins_file(file_path: (str | os.PathLike)):
-        results_dataframe = (
-            ORFaqsProteinDiscoveryUtils.read_results_file_as_dataframe(
-                file_path
-            )
+        results_dataframe = ORFaqsProteinDiscoveryUtils.read_protein_discovery_file_as_dataframe(
+            file_path
         )
         expected_columns = ORFaqsProteinDiscoveryRecord.keys()
         for expected_column in expected_columns:
@@ -277,6 +278,19 @@ class ORFaqsProteinDiscoveryUtils:
                 )
                 _logger.error(message)
                 raise ValueError(message)
+
+    @staticmethod
+    def is_valid_discovered_proteins_file(
+        file_path: (str | os.PathLike),
+    ) -> bool:
+        try:
+            ORFaqsProteinDiscoveryUtils.validate_discovered_proteins_file(
+                file_path
+            )
+        except ValueError:
+            return False
+
+        return True
 
     @staticmethod
     def _read_intermediate_records_file(
@@ -380,10 +394,8 @@ class ORFaqsProteinDiscoveryUtils:
                 print(message)
 
             # Read the data from file.
-            reading_frame_results = (
-                ORFaqsProteinDiscoveryUtils.read_results_file_as_dataframe(
-                    file_path
-                )
+            reading_frame_results = ORFaqsProteinDiscoveryUtils.read_protein_discovery_file_as_dataframe(
+                file_path
             )
             grouped_results_dataframe.append(
                 reading_frame_results[record_keys]
@@ -408,6 +420,7 @@ class ORFaqsProteinDiscoveryUtils:
 
     @staticmethod
     def _translate_rna_group(
+        accession_number: str,
         reading_frame: RNAReadingFrame,
         rna_sequence: RNASequence,
         start_codon_indices: list[int],
@@ -459,6 +472,7 @@ class ORFaqsProteinDiscoveryUtils:
             ones_based_index_start_codon_position = start_codon_index + 1
             with open(results_file_path, 'a', encoding='utf-8') as o_file:
                 protein_record_json_str = ORFaqsProteinDiscoveryRecord(
+                    accession_number=accession_number,
                     reading_frame=reading_frame,
                     rna_sequence_position=ones_based_index_start_codon_position,
                     protein=translated_protein,
@@ -557,6 +571,7 @@ class ORFaqsProteinDiscoveryUtils:
                 thread_pool[thread_id] = multiprocessing.Process(
                     target=ORFaqsProteinDiscoveryUtils._translate_rna_group,
                     args=(
+                        accession_number,
                         reading_frame,
                         str(rna_sequence_frame),
                         start_codon_indices_subset,
