@@ -8,17 +8,30 @@ import re
 from orfaqs.lib.core.nucleotides import GenomicSequence, NucleotideUtils
 from orfaqs.lib.utils.jsonutils import JsonUtils
 
+_SUPPORTED_ACCESSION_NUMBER_PREFIXES: list[str] = [
+    'NC_',
+    'NG_',
+    'NM_',
+    'NP_',
+    'NR_',
+    'NT_',
+    'NW_',
+    'XM_',
+    'XP_',
+    'XR_',
+]
+
 
 class FASTASequence:
     """FASTASequence"""
 
-    SEQUENCE_ID_DELIM = '>'
-    HEADER_INFO_SEQUENCE_ID_KEY = 'sequence_id'
+    ACCESSION_NUMBER_DELIM = '>'
+    HEADER_INFO_ACCESSION_NUMBER_KEY = 'accession_number'
     HEADER_INFO_SEQUENCE_DESCRIPTION = 'sequence_description'
 
     def __init__(self, header_str: str, sequence: str | list[str]):
-        (self._sequence_id, self._header_info) = FASTASequence._parse_header(
-            header_str
+        (self._accession_number, self._header_info) = (
+            FASTASequence._parse_header(header_str)
         )
         self._sequence_name = JsonUtils.as_json_string(
             self._header_info, indent=None
@@ -32,8 +45,8 @@ class FASTASequence:
         return self._header_info
 
     @property
-    def sequence_id(self) -> str:
-        return self._sequence_id
+    def accession_number(self) -> str:
+        return self._accession_number
 
     @property
     def sequence_name(self) -> str:
@@ -47,27 +60,38 @@ class FASTASequence:
     def _parse_header(header_str: str) -> tuple[str, dict[str, str]]:
         if not FASTAUtils.is_fasta_header(header_str):
             return None
-        header_str = header_str.replace(FASTASequence.SEQUENCE_ID_DELIM, '')
+        header_str = header_str.replace(
+            FASTASequence.ACCESSION_NUMBER_DELIM, ''
+        )
 
         # Grab the individual fields of the header
-        sequence_id = None
+        accession_number = None
         header_info = {}
         header_fields = header_str.split(' ')
-        if len(header_fields) > 0:
-            sequence_id = header_fields[0].lower()
-            header_info[FASTASequence.HEADER_INFO_SEQUENCE_ID_KEY] = (
-                sequence_id
+        number_header_fields = len(header_fields)
+        if number_header_fields > 0:
+            header_reference_field = header_fields[0]
+            for prefix in _SUPPORTED_ACCESSION_NUMBER_PREFIXES:
+                if prefix in header_reference_field:
+                    accession_number_fields = header_reference_field.split(
+                        prefix
+                    )
+                    # Remove all non-alphanumeric characters from the
+                    # accession_number.
+                    accession_number = re.sub(
+                        r'[^a-zA-Z0-9]', '', accession_number_fields[-1]
+                    )
+                    accession_number = f'{prefix}{accession_number}'
+
+            header_info[FASTASequence.HEADER_INFO_ACCESSION_NUMBER_KEY] = (
+                accession_number
             )
+        if number_header_fields > 1:
             header_info[FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION] = (
                 ' '.join(header_fields[1:])
             )
 
-        # Remove all non-alphanumeric characters from the sequence_id.
-        sequence_id = re.sub(r'[^a-zA-Z0-9]', '-', sequence_id)
-        if sequence_id[-1] == '-':
-            sequence_id = sequence_id[0:-1]
-
-        return (sequence_id, header_info)
+        return (accession_number, header_info)
 
 
 class FASTAUtils:

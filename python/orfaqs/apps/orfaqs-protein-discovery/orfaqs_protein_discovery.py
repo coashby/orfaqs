@@ -59,6 +59,14 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     default=ORFaqsProteinDiscovery.default_output_directory(),
                 ),
                 CliUtil.create_new_arg_descriptor(
+                    ('--accession_number'),
+                    arg_help=(
+                        'Defines the accession number associated with the '
+                        'sequence.'
+                    ),
+                    arg_type=str,
+                ),
+                CliUtil.create_new_arg_descriptor(
                     ('--export_format'),
                     arg_help=(
                         'Defines the exported format of the resulting data. '
@@ -114,6 +122,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
     @staticmethod
     def _run(
         input_sequence: str | pathlib.Path,
+        accession_number: str = None,
         output_directory: str | pathlib.Path = None,
         job_id: str = None,
         export_format: str = None,
@@ -140,6 +149,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             # Try processing as an sequence string.
             ORFaqsProteinDiscoveryUtils.process_genomic_sequence(
                 genomic_sequence=input_sequence,
+                accession_number=accession_number,
                 export_format=export_format,
                 output_directory=output_directory,
             )

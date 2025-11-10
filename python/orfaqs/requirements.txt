@@ -4,10 +4,12 @@ GPUtil
 openpyxl
 pandas
 pre-commit
+psycopg2-binary
 pyinstaller
 pytest
 pytest-cov
 pytest-datadir
 ruff
 setuptools
+sqlalchemy
 tqdm

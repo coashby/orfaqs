@@ -11,19 +11,19 @@ class DirectoryUtils:
     """DirectoryUtils"""
 
     @staticmethod
-    def is_directory(path):
+    def is_directory(path) -> bool:
         return pathlib.Path(path).is_dir()
 
     @staticmethod
-    def is_file(path):
+    def is_file(path) -> bool:
         return pathlib.Path(path).is_file()
 
     @staticmethod
-    def current_directory_path():
+    def current_directory_path() -> pathlib.Path:
         return pathlib.Path.cwd()
 
     @staticmethod
-    def make_path_object(path):
+    def make_path_object(path) -> pathlib.Path:
         if isinstance(path, pathlib.Path):
             return path
 
@@ -42,11 +42,15 @@ class DirectoryUtils:
             os.remove(path)
 
     @staticmethod
-    def path_exists(path):
+    def path_exists(path) -> bool:
         return pathlib.Path(path).exists()
 
     @staticmethod
-    def glob_files(path, pattern='*.*', recursive=False):
+    def glob_files(
+        path,
+        pattern: str = '*.*',
+        recursive: bool = False,
+    ) -> list[pathlib.Path]:
         file_list = []
         if recursive:
             file_list = list(
@@ -68,7 +72,7 @@ class DirectoryUtils:
         shutil.copy(source_path, destination_path)
 
     @staticmethod
-    def append_extension(path, extension):
+    def append_extension(path, extension) -> pathlib.Path:
         path_object = DirectoryUtils.make_path_object(path)
         if extension[0] != '.':
             extension = f'.{extension}'
@@ -77,7 +81,7 @@ class DirectoryUtils:
         return pathlib.Path(path_as_string)
 
     @staticmethod
-    def remove_extension(path):
+    def remove_extension(path) -> pathlib.Path:
         output_path = DirectoryUtils.make_path_object(path)
         file_name_str = str(output_path.name)
         # Find the last occurrence of '.' for an extension
