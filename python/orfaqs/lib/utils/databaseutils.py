@@ -3,14 +3,21 @@ Database Utils module supporting database connections, queries, and other
 common operations.
 """
 
+import csv
+import io
 import logging
 import sqlalchemy
 import typing
 
 from abc import ABC, abstractmethod
+from pandas.io.sql import SQLTable
 from sqlalchemy.exc import (
     ProgrammingError,
 )
+
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import mapped_column
+
 
 _logger = logging.getLogger(__name__)
 
@@ -93,6 +100,14 @@ class DatabaseConnectionOptions:
         }
 
 
+class BaseTable(DeclarativeBase):
+    """BaseTable
+    Base class for declarative table creation and other declarative mappings.
+    """
+
+    pass
+
+
 class SqlAlchemyUtils:
     """SqlAlchemyUtils"""
 
@@ -107,7 +122,8 @@ class SqlAlchemyUtils:
 
     @staticmethod
     def run_query(
-        connection: sqlalchemy.Connection, query: str
+        query: str,
+        connection: sqlalchemy.Connection,
     ) -> sqlalchemy.CursorResult[any]:
         try:
             return connection.execute(sqlalchemy.text(query))
@@ -122,20 +138,46 @@ class SqlAlchemyUtils:
             raise RuntimeError(message) from e
 
     @staticmethod
-    def create_database(connection: sqlalchemy.Connection, database: str):
+    def create_database(
+        database: str,
+        connection: sqlalchemy.Connection,
+    ):
         query = f'CREATE DATABASE {database}'
         connection.execution_options(isolation_level='AUTOCOMMIT')
-        SqlAlchemyUtils.run_query(connection, query)
+        SqlAlchemyUtils.run_query(query, connection)
         message = f'[INFO] Database: {database} created.'
         _logger.info(message)
         print(message)
 
     @staticmethod
-    def drop_database(connection: sqlalchemy.Connection, database: str):
-        query = f'DROP DATABASE IF EXISTS {database}'
+    def drop_database(
+        database: str,
+        connection: sqlalchemy.Connection,
+    ):
+        query = f'DROP DATABASE IF EXISTS {database} WITH (FORCE)'
         connection.execution_options(isolation_level='AUTOCOMMIT')
-        SqlAlchemyUtils.run_query(connection, query)
+        SqlAlchemyUtils.run_query(query, connection)
         message = f'[INFO] Database: {database} dropped.'
+        _logger.info(message)
+        print(message)
+
+    @staticmethod
+    def table_exists(
+        table: str,
+        engine: sqlalchemy.Engine,
+    ) -> bool:
+        database_inspector = sqlalchemy.inspect(engine)
+        return database_inspector.has_table(table)
+
+    @staticmethod
+    def drop_table(
+        table: str,
+        connection: sqlalchemy.Connection,
+    ):
+        query = f'DROP TABLE IF EXISTS {table}'
+        connection.execution_options(isolation_level='AUTOCOMMIT')
+        SqlAlchemyUtils.run_query(query, connection)
+        message = f'[INFO] Table: {table} dropped.'
         _logger.info(message)
         print(message)
 
@@ -156,16 +198,48 @@ class SqlAlchemyUtils:
             database=connection_options.database,
         )
 
+    create_column: typing.Callable = mapped_column
+
+    @staticmethod
+    def psql_insert_copy(
+        table: SQLTable,
+        connection: (sqlalchemy.Connection | sqlalchemy.Engine),
+        columns: list[str],
+        data_iter: typing.Iterable,
+    ):
+        """
+        Inserts data into the specified SQL table.
+        ---------
+        Arguments
+        ---------
+        table (SQLTable):
+        connection (sqlalchemy.engine.Connection):
+        keys (list[str]):
+            Column names
+        data_iter (typing.Iterable):
+        """
+        # Retrieve a cursor object from the database API connection.
+        database_connection = connection.connection
+        with database_connection.cursor() as cursor:
+            stream_buffer = io.StringIO()
+            csv_writer = csv.writer(stream_buffer)
+            csv_writer.writerows(data_iter)
+            stream_buffer.seek(0)
+
+            columns_str = ', '.join([f'"{column}"' for column in columns])
+            if table.schema:
+                table_name = f'{table.schema}.{table.name}'
+            else:
+                table_name = table.name
+
+            sql = f'COPY {table_name} ({columns_str}) FROM STDIN WITH CSV'
+            cursor.copy_expert(sql=sql, file=stream_buffer)
+
 
 class DatabaseUtils(ABC):
     @staticmethod
     def supported_dialects() -> list[str]:
         return _SUPPORTED_DIALECTS
-
-    @staticmethod
-    @abstractmethod
-    def database_exists(database) -> bool:
-        pass
 
     @staticmethod
     @abstractmethod
@@ -185,6 +259,11 @@ class DatabaseUtils(ABC):
 
     @staticmethod
     @abstractmethod
+    def database_exists(database) -> bool:
+        pass
+
+    @staticmethod
+    @abstractmethod
     def create_database(
         connection_options: DatabaseConnectionOptions = None,
         **kwargs,
@@ -193,14 +272,44 @@ class DatabaseUtils(ABC):
 
     @staticmethod
     @abstractmethod
-    def drop_database(database, **kwargs):
+    def drop_database(
+        database: str,
+        **kwargs,
+    ):
+        pass
+
+    @classmethod
+    def table_exists(
+        cls,
+        table: str,
+        connection_options: DatabaseConnectionOptions = None,
+    ) -> bool:
+        engine = cls.get_engine(connection_options)
+        return SqlAlchemyUtils.table_exists(table, engine)
+
+    @staticmethod
+    @abstractmethod
+    def create_table(
+        base_table: DeclarativeBase,
+        connection_options: DatabaseConnectionOptions = None,
+        **kwargs,
+    ):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def drop_table(
+        table: str,
+        **kwargs,
+    ):
         pass
 
     @staticmethod
     def run_query(
-        connection: sqlalchemy.Connection, query: str
+        query: str,
+        connection: sqlalchemy.Connection,
     ) -> sqlalchemy.CursorResult[any]:
-        return SqlAlchemyUtils.run_query(connection, query)
+        return SqlAlchemyUtils.run_query(query, connection)
 
 
 class PostgresDatabaseUtils(DatabaseUtils):
@@ -215,16 +324,22 @@ class PostgresDatabaseUtils(DatabaseUtils):
         return 'postgres'
 
     @staticmethod
+    def default_database_connection_options():
+        return DatabaseConnectionOptions(
+            database=PostgresDatabaseUtils.default_database(),
+            username=PostgresDatabaseUtils.default_username(),
+            host='localhost',
+            port='5432',
+        )
+
+    @staticmethod
     def get_engine(
         connection_options: DatabaseConnectionOptions = None,
         **kwargs,
     ) -> sqlalchemy.Engine:
         if connection_options is None:
-            connection_options = DatabaseConnectionOptions(
-                database=PostgresDatabaseUtils.default_database(),
-                username=PostgresDatabaseUtils.default_username(),
-                host='localhost',
-                port='5432',
+            connection_options = (
+                PostgresDatabaseUtils.default_database_connection_options()
             )
         engine_url = SqlAlchemyUtils.create_postgres_database_url(
             connection_options
@@ -244,13 +359,13 @@ class PostgresDatabaseUtils(DatabaseUtils):
     @staticmethod
     def database_exists(database) -> bool:
         # Connect to the default database.
-        default_connection = PostgresDatabaseUtils.connect()
+        default_database_connection = PostgresDatabaseUtils.connect()
         query = (
             'SELECT EXISTS ('
             f"SELECT 1 FROM pg_database WHERE datname = '{database}')"
         )
-        result = SqlAlchemyUtils.run_query(default_connection, query)
-
+        result = SqlAlchemyUtils.run_query(query, default_database_connection)
+        default_database_connection.close()
         return result.scalar()
 
     @staticmethod
@@ -276,13 +391,34 @@ class PostgresDatabaseUtils(DatabaseUtils):
             # query must be run within a database connection as itt can not be
             # executed inside transactions (as would be the case from
             # engine.execute()).
-            default_connection = PostgresDatabaseUtils.connect()
+            default_database_connection = PostgresDatabaseUtils.connect()
             SqlAlchemyUtils.create_database(
-                default_connection,
                 connection_options.database,
+                default_database_connection,
             )
+            default_database_connection.close()
 
     @staticmethod
     def drop_database(database, **kwargs):
-        default_connection = PostgresDatabaseUtils.connect()
-        SqlAlchemyUtils.drop_database(default_connection, database)
+        database_connection = PostgresDatabaseUtils.connect(**kwargs)
+        SqlAlchemyUtils.drop_database(database, database_connection)
+        database_connection.close()
+
+    @staticmethod
+    def create_table(
+        base_table: DeclarativeBase,
+        connection_options: DatabaseConnectionOptions = None,
+        **kwargs,
+    ):
+        database_engine = PostgresDatabaseUtils.get_engine(connection_options)
+        base_table.metadata.create_all(database_engine)
+
+    @staticmethod
+    def drop_table(
+        table: str,
+        connection_options: DatabaseConnectionOptions = None,
+        **kwargs,
+    ):
+        database_connection = PostgresDatabaseUtils.connect(connection_options)
+        SqlAlchemyUtils.drop_table(table, database_connection)
+        database_connection.close()
