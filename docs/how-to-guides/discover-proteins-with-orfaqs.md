@@ -126,9 +126,9 @@ sub-directory will not appear as part of the output path.
 
 Within this folder:
 - **Outputs generated from *FASTA* files** appear in the path:
-`<OUTPUT_DIRECTORY>/.orfaqs-apps/orfaqs-protein-discovery/<JOB_ID>/<SEQUENCE_ID>`,
-where `<SEQUENCE_ID>` is the sequence identifier found in the *FASTA* file for
-the corresponding sequence.
+`<OUTPUT_DIRECTORY>/.orfaqs-apps/orfaqs-protein-discovery/<JOB_ID>/<ACCESSION_NUMBER>`,
+where `<ACCESSION_NUMBER>` is the unique identifier found in the *FASTA* file
+for the corresponding sequence.
 - **Outputs from sequence strings** appear directly in the directory path
 `<OUTPUT_DIRECTORY>/<JOB_ID>/.orfaqs-apps/orfaqs-protein-discovery`.
 
@@ -162,6 +162,8 @@ Within each file, results are organized either as tables (in the case of *CSV*
 and *Excel* exports), or as lists of *JSON* objects (in the case of *JSON*
 exports). Each file contains the following information:
 
+- `accession_number`: `(str)`: The accession number assigned to the sequence
+from which the protein was translated.
 - `reading_frame`: `(int)` The reading frame used during translation.
 - `rna_sequence_position`: `(int)` The place in the RNA sequence where
 translation began.

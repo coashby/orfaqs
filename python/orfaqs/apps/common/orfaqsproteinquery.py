@@ -82,7 +82,7 @@ class _ORFaqsDiscoveredProteinsTableFactory:
             @staticmethod
             def accession_number_comment() -> str:
                 return (
-                    'The accession number assigned to organism from '
+                    'The accession number assigned to the sequence from '
                     'which the protein was translated.'
                 )
 
