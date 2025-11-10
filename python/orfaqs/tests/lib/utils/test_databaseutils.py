@@ -16,6 +16,21 @@ from orfaqs.lib.utils.databaseutils import (
 
 _logger = logging.getLogger(__name__)
 
+ENABLE_TEST_ENVIRONMENT_VARIABLE = 'ORFAQS_PYTEST_ENABLE_TEST_DATABASE_UTILS'
+TEST_DATABASE_UTILS_ENABLED = os.environ.get(
+    ENABLE_TEST_ENVIRONMENT_VARIABLE, default='False'
+).lower() in ['true', '1']
+
+SKIP_REASON = (
+    f'Pytest: {__name__} not enabled. To enable this test module, set the '
+    'environment variable: '
+    f'{ENABLE_TEST_ENVIRONMENT_VARIABLE} to "true" or "1".'
+)
+pytestmark = pytest.mark.skipif(
+    not TEST_DATABASE_UTILS_ENABLED,
+    reason=SKIP_REASON,
+)
+
 
 def _database_connection_options(database=None) -> DatabaseConnectionOptions:
     # Check the systems environment variables for database credentials.
