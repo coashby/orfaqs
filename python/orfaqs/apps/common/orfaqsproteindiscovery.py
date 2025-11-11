@@ -9,7 +9,6 @@ import multiprocessing
 import os
 import pandas as pd
 import pathlib
-import typing
 
 from datetime import datetime
 from tqdm import tqdm
@@ -33,7 +32,13 @@ from orfaqs.lib.core.ribosomes import (
 
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
 from orfaqs.lib.utils.jsonutils import JsonUtils
+from orfaqs.lib.utils.pandasutils import (
+    DataFrameExportFormat,
+    DataFrameExportFormatOptions,
+    PandasUtils,
+)
 from orfaqs.lib.utils.perfutils import PerfProfiler
+
 
 _logger = logging.getLogger(__name__)
 _perf_profiler = PerfProfiler(__name__)
@@ -44,17 +49,7 @@ class _ProfilingFunctionName(enum.Enum):
     TRANSLATE_RNA_GROUP = enum.auto()
 
 
-class ExportFormat:
-    CSV = 'csv'
-    JSON = 'json'
-    XLSX = 'xlsx'
-
-
-_ExportFormatOptions = typing.Literal[
-    ExportFormat.CSV,
-    ExportFormat.JSON,
-    ExportFormat.XLSX,
-]
+_ExportFormatOptions = DataFrameExportFormatOptions
 _AVAILABLE_EXPORT_FORMATS: list[str] = [
     format for format in _ExportFormatOptions.__args__
 ]
@@ -149,7 +144,7 @@ class ORFaqsProteinDiscoveryUtils:
 
     @staticmethod
     def default_export_format() -> str:
-        return ExportFormat.CSV
+        return DataFrameExportFormat.CSV
 
     @staticmethod
     def default_output_directory() -> str:
@@ -168,57 +163,6 @@ class ORFaqsProteinDiscoveryUtils:
     @staticmethod
     def unreferenced_accession_number() -> str:
         "unknown_reference"
-
-    @staticmethod
-    def _export_dataframe(
-        file_path: (str | os.PathLike),
-        dataframe: pd.DataFrame,
-        export_format: _ExportFormatOptions,
-    ) -> pathlib.Path:
-        file_path = DirectoryUtils.make_path_object(file_path)
-        if ExportFormat.CSV in export_format:
-            file_path = file_path.with_suffix(f'.{ExportFormat.CSV}')
-            dataframe.to_csv(
-                file_path,
-                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
-            )
-        elif ExportFormat.JSON in export_format:
-            file_path = file_path.with_suffix(f'.{ExportFormat.JSON}')
-            dataframe.to_json(file_path)
-        elif ExportFormat.XLSX in export_format:
-            file_path = file_path.with_suffix(f'.{ExportFormat.XLSX}')
-            dataframe.to_excel(
-                file_path,
-                index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
-            )
-        return file_path
-
-    @staticmethod
-    def read_protein_discovery_file_as_dataframe(
-        file_path: (str | os.PathLike),
-    ) -> pd.DataFrame:
-        results_dataframe: pd.DataFrame = None
-        file_type = DirectoryUtils.make_path_object(file_path).suffix.lower()
-        if ExportFormat.CSV in file_type:
-            results_dataframe = pd.read_csv(file_path, index_col=False)
-        elif ExportFormat.JSON in file_type:
-            results_dataframe = pd.read_json(file_path)
-        elif ExportFormat.XLSX in file_type:
-            results_dataframe = pd.read_excel(file_path, index_col=False)
-        else:
-            message = (
-                '[ERROR] Input file type not recognized. Expected files types '
-                'are: '
-                f'{ORFaqsProteinDiscoveryUtils.available_export_formats()}.\n'
-                '(debug) ->\n'
-                f'\tfile_path: {file_path}\n'
-                f'\tfile_type: {file_type}'
-            )
-            _logger.error(message)
-            raise ValueError(message)
-
-        results_dataframe.reset_index(inplace=True)
-        return results_dataframe
 
     @staticmethod
     def _result_file_name(
@@ -270,9 +214,7 @@ class ORFaqsProteinDiscoveryUtils:
 
     @staticmethod
     def validate_discovered_proteins_file(file_path: (str | os.PathLike)):
-        results_dataframe = ORFaqsProteinDiscoveryUtils.read_protein_discovery_file_as_dataframe(
-            file_path
-        )
+        results_dataframe = PandasUtils.read_file_as_dataframe(file_path)
         expected_columns = ORFaqsProteinDiscoveryRecord.keys()
         for expected_column in expected_columns:
             if expected_column not in results_dataframe.columns:
@@ -362,10 +304,11 @@ class ORFaqsProteinDiscoveryUtils:
             )
         )
         export_format = str(export_format).lower()
-        export_file_path = ORFaqsProteinDiscoveryUtils._export_dataframe(
+        export_file_path = PandasUtils.export_dataframe(
             file_path=export_file_path,
             dataframe=records_dataframe,
             export_format=export_format,
+            index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
         )
 
         #######################################################################
@@ -398,7 +341,7 @@ class ORFaqsProteinDiscoveryUtils:
                 print(message)
 
             # Read the data from file.
-            reading_frame_results = ORFaqsProteinDiscoveryUtils.read_protein_discovery_file_as_dataframe(
+            reading_frame_results = PandasUtils.read_file_as_dataframe(
                 file_path
             )
             grouped_results_dataframe.append(
@@ -416,10 +359,11 @@ class ORFaqsProteinDiscoveryUtils:
         export_file_path = output_directory.joinpath(
             ORFaqsProteinDiscoveryUtils.exported_file_name(access_number)
         )
-        ORFaqsProteinDiscoveryUtils._export_dataframe(
+        PandasUtils.export_dataframe(
             file_path=export_file_path,
             dataframe=final_results_dataframe,
             export_format=export_format,
+            index_label=ORFaqsProteinDiscoveryUtils.DATAFRAME_INDEX_KEY,
         )
 
     @staticmethod
