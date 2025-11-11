@@ -45,7 +45,6 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                         'sub-folder.'
                     ),
                     arg_type=str,
-                    default=None,
                 ),
                 CliUtil.create_new_arg_descriptor(
                     ('-o', '--output_directory'),
@@ -56,7 +55,6 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                         f'{ORFaqsProteinDiscovery.default_output_directory()}'
                     ),
                     arg_type=str,
-                    default=ORFaqsProteinDiscovery.default_output_directory(),
                 ),
                 CliUtil.create_new_arg_descriptor(
                     ('--accession_number'),
@@ -104,13 +102,12 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             ui_kwargs = ORFaqsApp.process_ui_kwargs(
                 **CliUtil.parse_args(cli_arg_parser)
             )
-            if 'input_sequence' not in ui_kwargs:
+            if ui_kwargs.get('input_sequence') is None:
                 message = (
                     '[ERROR] No input file or sequence string was '
                     'specified. A valid input is required.'
                 )
                 _logger.error(message)
-                print(message)
                 cli_arg_parser.print_help()
             else:
                 ORFaqsProteinDiscovery.run(**ui_kwargs)
@@ -129,9 +126,12 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
         **kwargs,
     ):
         if output_directory is None:
-            output_directory = (
-                ORFaqsProteinDiscovery.default_output_directory()
-            )
+            output_directory = './'
+
+        output_directory = DirectoryUtils.make_path_object(output_directory)
+        output_directory = output_directory.joinpath(
+            ORFaqsProteinDiscoveryUtils.default_output_directory()
+        )
 
         # Create the local output directory and output file path
         output_directory = DirectoryUtils.make_path_object(output_directory)
