@@ -186,12 +186,6 @@ class ORFaqsProteinQueryUtils:
         _database_connection_options.port = port
 
     @staticmethod
-    def _create_orfaqs_protein_query_database(database: str = None):
-        if database is not None:
-            ORFaqsProteinQueryUtils.set_database(database)
-        PostgresDatabaseUtils.create_database(_database_connection_options)
-
-    @staticmethod
     def _create_orfaqs_discovered_proteins_table():
         _ORFaqsDiscoveredProteinsTableFactory._define_table()
         PostgresDatabaseUtils.create_table(
@@ -249,6 +243,15 @@ class ORFaqsProteinQueryUtils:
         expected_columns = ORFaqsDiscoveredProteinTableSchema.columns()
         drop_columns = proteins_dataframe.columns.difference(expected_columns)
         proteins_dataframe.drop(drop_columns, axis='columns', inplace=True)
+
+    @staticmethod
+    def create_workspace(workspace: str):
+        ORFaqsProteinQueryUtils.set_workspace(workspace)
+        PostgresDatabaseUtils.create_database(_database_connection_options)
+
+    @staticmethod
+    def remove_workspace(workspace: str):
+        PostgresDatabaseUtils.drop_database(workspace)
 
     @staticmethod
     def load_discovered_proteins(
@@ -319,8 +322,7 @@ class ORFaqsProteinQueryUtils:
         #######################################################################
         # Load all discovered proteins into the default database.
         # 1. Ensure the desired database and tables exist.
-        ORFaqsProteinQueryUtils.set_workspace(workspace)
-        ORFaqsProteinQueryUtils._create_orfaqs_protein_query_database()
+        ORFaqsProteinQueryUtils.create_workspace(workspace)
         ORFaqsProteinQueryUtils._create_orfaqs_discovered_proteins_table()
 
         # 2. Connect the the workspace database.
@@ -354,7 +356,3 @@ class ORFaqsProteinQueryUtils:
                 )
                 _logger.info(message)
                 print(message)
-
-    @staticmethod
-    def remove_workspace(workspace: str):
-        PostgresDatabaseUtils.drop_database(workspace)
