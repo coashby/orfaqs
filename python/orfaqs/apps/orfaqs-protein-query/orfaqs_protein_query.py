@@ -146,17 +146,6 @@ class ORFaqsProteinQuery(ORFaqsApp):
                     default=None,
                 ),
                 CliUtil.create_new_arg_descriptor(
-                    ('--force_load'),
-                    arg_help=(
-                        'If enabled, data with the workspace is replaced with '
-                        'the current data referenced by the input path. '
-                        'Otherwise, any duplicate data is dropped and any '
-                        'non-duplicate data is added to the workspace.'
-                    ),
-                    action='store_true',
-                    default=None,
-                ),
-                CliUtil.create_new_arg_descriptor(
                     ('-q', '--query'),
                     arg_help=(
                         'Query string for inspecting the protein sequence '
@@ -230,7 +219,6 @@ class ORFaqsProteinQuery(ORFaqsApp):
     def _load_proteins(
         workspace: str,
         input_proteins: str | pathlib.Path,
-        force_load: bool,
         **kwargs,
     ):
         if workspace is None:
@@ -238,7 +226,6 @@ class ORFaqsProteinQuery(ORFaqsApp):
         ORFaqsProteinQueryUtils.load_discovered_proteins(
             workspace=workspace,
             input_path=input_proteins,
-            force_load=force_load,
         )
 
     @staticmethod

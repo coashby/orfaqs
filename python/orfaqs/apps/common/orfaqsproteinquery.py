@@ -2,7 +2,6 @@
 ORFaqs Protein Query common app classes, resources, and utility functions.
 """
 
-import hashlib
 import logging
 import os
 import pandas as pd
@@ -222,21 +221,21 @@ class ORFaqsProteinQueryUtils:
         )
 
     @staticmethod
-    def _create_hash(
+    def _create_uid(
         accession_number: str,
         reading_frame: int,
         rna_sequence_position: int,
-        protein: str,
+        protein_length: str,
     ) -> str:
-        encoded_str_data = ''.join(
+        uid_str = ':'.join(
             [
                 accession_number,
                 str(reading_frame),
                 str(rna_sequence_position),
-                protein,
+                str(protein_length),
             ]
-        ).encode('utf-8')
-        return hashlib.sha256(encoded_str_data).hexdigest()
+        )
+        return uid_str
 
     @staticmethod
     def _add_database_primary_key_column(proteins_dataframe: pd.DataFrame):
@@ -250,12 +249,14 @@ class ORFaqsProteinQueryUtils:
             rna_sequence_position = row[
                 ORFaqsDiscoveredProteinTableSchema.RNA_SEQUENCE_POSITION_KEY
             ]
-            protein = row[ORFaqsDiscoveredProteinTableSchema.PROTEIN_KEY]
-            return ORFaqsProteinQueryUtils._create_hash(
+            protein_length = row[
+                ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY
+            ]
+            return ORFaqsProteinQueryUtils._create_uid(
                 accession_number=accession_number,
                 reading_frame=reading_frame,
                 rna_sequence_position=rna_sequence_position,
-                protein=protein,
+                protein_length=protein_length,
             )
 
         proteins_dataframe[ORFaqsDiscoveredProteinTableSchema.UID_KEY] = (
@@ -367,9 +368,6 @@ class ORFaqsProteinQueryUtils:
         )
 
         # 3. Load all the result files into memory.
-        write_data_method = 'append'
-        if force_load:
-            write_data_method = 'replace'
         for file_path in discovery_files:
             proteins_dataframe = PandasUtils.read_file_as_dataframe(file_path)
             ORFaqsProteinQueryUtils._prepare_dataframe_for_table(
@@ -379,7 +377,7 @@ class ORFaqsProteinQueryUtils:
                 proteins_dataframe.to_sql(
                     name=_ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME,
                     con=database_connection,
-                    if_exists=write_data_method,
+                    if_exists='append',
                     index=False,
                     method=SqlAlchemyUtils.psql_insert_copy,
                 )
