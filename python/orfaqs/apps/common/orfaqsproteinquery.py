@@ -2,11 +2,11 @@
 ORFaqs Protein Query common app classes, resources, and utility functions.
 """
 
-import hashlib
 import logging
 import os
 import pandas as pd
 import psycopg2
+import typing
 
 from orfaqs.apps.common.orfaqsproteindiscovery import (
     ORFaqsProteinDiscoveryUtils,
@@ -20,8 +20,20 @@ from orfaqs.lib.utils.databaseutils import (
     SqlAlchemyUtils,
 )
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
+from orfaqs.lib.utils.pandasutils import (
+    DataFrameExportFormat,
+    PandasUtils,
+)
 
 _logger = logging.getLogger(__name__)
+
+_ExportFormatOptions = typing.Literal[
+    DataFrameExportFormat.CSV,
+    DataFrameExportFormat.XLSX,
+]
+_AVAILABLE_EXPORT_FORMATS: list[str] = [
+    format for format in _ExportFormatOptions.__args__
+]
 
 _ORFAQS_PROTEIN_QUERY_DATABASE = 'orfaqs_protein_query'
 # Global database connection options enable user defined options to persist
@@ -66,7 +78,8 @@ class _ORFaqsDiscoveredProteinsTableFactory:
             """ORFaqsDiscoveredProteinTable"""
 
             __tablename__ = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
-            ACCESSION_NUMBER_MAX_LENGTH = 256
+            ACCESSION_NUMBER_MAX_CHAR_LENGTH = 64
+            UID_MAX_CHAR_LENGTH = 64
 
             @staticmethod
             def _reading_frame_check_constraint() -> str:
@@ -113,14 +126,14 @@ class _ORFaqsDiscoveredProteinsTableFactory:
 
             uid = SqlAlchemyUtils.create_column(
                 ORFaqsDiscoveredProteinTableSchema.UID_KEY,
-                sqlalchemy.String,
+                sqlalchemy.String(UID_MAX_CHAR_LENGTH),
                 primary_key=True,
                 comment=uid_comment(),
             )
 
             accession_number = SqlAlchemyUtils.create_column(
                 ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY,
-                sqlalchemy.String(ACCESSION_NUMBER_MAX_LENGTH),
+                sqlalchemy.String(ACCESSION_NUMBER_MAX_CHAR_LENGTH),
                 comment=accession_number_comment(),
             )
 
@@ -157,7 +170,17 @@ class _ORFaqsDiscoveredProteinsTableFactory:
 class ORFaqsProteinQueryUtils:
     """ORFaqsProteinQueryUtils"""
 
-    PROTEIN_TABLE_COLUMN_HASH_KEY = 'hash'
+    @staticmethod
+    def default_export_format() -> str:
+        return DataFrameExportFormat.CSV
+
+    @staticmethod
+    def default_output_directory() -> str:
+        return './'
+
+    @staticmethod
+    def available_export_formats() -> list[str]:
+        return _AVAILABLE_EXPORT_FORMATS
 
     @staticmethod
     def default_database():
@@ -173,6 +196,10 @@ class ORFaqsProteinQueryUtils:
         ORFaqsProteinQueryUtils.set_database(workspace)
 
     @staticmethod
+    def table() -> str:
+        return _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
+
+    @staticmethod
     def configure_database(
         username: str = None,
         password: str = None,
@@ -186,12 +213,6 @@ class ORFaqsProteinQueryUtils:
         _database_connection_options.port = port
 
     @staticmethod
-    def _create_orfaqs_protein_query_database(database: str = None):
-        if database is not None:
-            ORFaqsProteinQueryUtils.set_database(database)
-        PostgresDatabaseUtils.create_database(_database_connection_options)
-
-    @staticmethod
     def _create_orfaqs_discovered_proteins_table():
         _ORFaqsDiscoveredProteinsTableFactory._define_table()
         PostgresDatabaseUtils.create_table(
@@ -200,21 +221,21 @@ class ORFaqsProteinQueryUtils:
         )
 
     @staticmethod
-    def _create_hash(
+    def _create_uid(
         accession_number: str,
         reading_frame: int,
         rna_sequence_position: int,
-        protein: str,
+        protein_length: str,
     ) -> str:
-        encoded_str_data = ''.join(
+        uid_str = ':'.join(
             [
                 accession_number,
                 str(reading_frame),
                 str(rna_sequence_position),
-                protein,
+                str(protein_length),
             ]
-        ).encode('utf-8')
-        return hashlib.sha256(encoded_str_data).hexdigest()
+        )
+        return uid_str
 
     @staticmethod
     def _add_database_primary_key_column(proteins_dataframe: pd.DataFrame):
@@ -228,12 +249,14 @@ class ORFaqsProteinQueryUtils:
             rna_sequence_position = row[
                 ORFaqsDiscoveredProteinTableSchema.RNA_SEQUENCE_POSITION_KEY
             ]
-            protein = row[ORFaqsDiscoveredProteinTableSchema.PROTEIN_KEY]
-            return ORFaqsProteinQueryUtils._create_hash(
+            protein_length = row[
+                ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY
+            ]
+            return ORFaqsProteinQueryUtils._create_uid(
                 accession_number=accession_number,
                 reading_frame=reading_frame,
                 rna_sequence_position=rna_sequence_position,
-                protein=protein,
+                protein_length=protein_length,
             )
 
         proteins_dataframe[ORFaqsDiscoveredProteinTableSchema.UID_KEY] = (
@@ -249,6 +272,23 @@ class ORFaqsProteinQueryUtils:
         expected_columns = ORFaqsDiscoveredProteinTableSchema.columns()
         drop_columns = proteins_dataframe.columns.difference(expected_columns)
         proteins_dataframe.drop(drop_columns, axis='columns', inplace=True)
+
+    @staticmethod
+    def _prepare_dataframe_for_export(proteins_dataframe: pd.DataFrame):
+        proteins_dataframe.drop(
+            columns=[ORFaqsDiscoveredProteinTableSchema.UID_KEY],
+            inplace=True,
+            errors='ignore',
+        )
+
+    @staticmethod
+    def create_workspace(workspace: str):
+        ORFaqsProteinQueryUtils.set_workspace(workspace)
+        PostgresDatabaseUtils.create_database(_database_connection_options)
+
+    @staticmethod
+    def remove_workspace(workspace: str):
+        PostgresDatabaseUtils.drop_database(workspace)
 
     @staticmethod
     def load_discovered_proteins(
@@ -319,8 +359,7 @@ class ORFaqsProteinQueryUtils:
         #######################################################################
         # Load all discovered proteins into the default database.
         # 1. Ensure the desired database and tables exist.
-        ORFaqsProteinQueryUtils.set_workspace(workspace)
-        ORFaqsProteinQueryUtils._create_orfaqs_protein_query_database()
+        ORFaqsProteinQueryUtils.create_workspace(workspace)
         ORFaqsProteinQueryUtils._create_orfaqs_discovered_proteins_table()
 
         # 2. Connect the the workspace database.
@@ -329,13 +368,8 @@ class ORFaqsProteinQueryUtils:
         )
 
         # 3. Load all the result files into memory.
-        write_data_method = 'append'
-        if force_load:
-            write_data_method = 'replace'
         for file_path in discovery_files:
-            proteins_dataframe = ORFaqsProteinDiscoveryUtils.read_protein_discovery_file_as_dataframe(
-                file_path
-            )
+            proteins_dataframe = PandasUtils.read_file_as_dataframe(file_path)
             ORFaqsProteinQueryUtils._prepare_dataframe_for_table(
                 proteins_dataframe
             )
@@ -343,7 +377,7 @@ class ORFaqsProteinQueryUtils:
                 proteins_dataframe.to_sql(
                     name=_ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME,
                     con=database_connection,
-                    if_exists=write_data_method,
+                    if_exists='append',
                     index=False,
                     method=SqlAlchemyUtils.psql_insert_copy,
                 )
@@ -356,5 +390,30 @@ class ORFaqsProteinQueryUtils:
                 print(message)
 
     @staticmethod
-    def remove_workspace(workspace: str):
-        PostgresDatabaseUtils.drop_database(workspace)
+    def export_proteins(
+        workspace: str,
+        file_path: (str | os.PathLike),
+        export_format: _ExportFormatOptions,
+        query_condition: str = None,
+    ):
+        ORFaqsProteinQueryUtils.set_workspace(workspace)
+        database_connection = PostgresDatabaseUtils.connect(
+            _database_connection_options
+        )
+
+        query = f'SELECT * FROM {ORFaqsProteinQueryUtils.table()}'
+        if isinstance(query_condition, str):
+            query += f' {query_condition}'
+
+        results_dataframe = pd.read_sql(
+            sql=query,
+            con=database_connection,
+        )
+        ORFaqsProteinQueryUtils._prepare_dataframe_for_export(
+            results_dataframe
+        )
+        PandasUtils.export_dataframe(
+            file_path=file_path,
+            dataframe=results_dataframe,
+            export_format=export_format,
+        )
