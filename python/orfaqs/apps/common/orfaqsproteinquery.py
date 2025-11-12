@@ -67,8 +67,8 @@ class _ORFaqsDiscoveredProteinsTableFactory:
     @staticmethod
     def _define_table():
         """
-        Defines the discovered_proteins table when called iff the table definition
-        does NOT exists in the base class.
+        Defines the discovered_proteins table when called iff the table
+        definition does NOT exists in the base class.
         """
         table_name = 'discovered_proteins'
         if table_name in BaseTable.metadata.tables:
@@ -294,7 +294,6 @@ class ORFaqsProteinQueryUtils:
     def load_discovered_proteins(
         workspace: str,
         input_path: (str | os.PathLike),
-        force_load: bool = False,
     ):
         """
         Reads the contents of the file or directory path provided and loads the
@@ -314,11 +313,6 @@ class ORFaqsProteinQueryUtils:
 
         input_path (str | os.PathLike):
             A file or directory path to discovered proteins.
-
-        force_load (bool):
-            If True, data with the workspace is replaced with the current data
-            referenced by the input path. Otherwise, any duplicate data is
-            dropped and any non-duplicate data is added to the workspace.
         """
         #######################################################################
         # Gather all discovery files.
