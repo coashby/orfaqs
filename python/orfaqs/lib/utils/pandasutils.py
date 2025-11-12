@@ -80,7 +80,7 @@ class PandasUtils:
             dataframe.to_json(file_path)
         elif DataFrameExportFormat.XLSX in export_format:
             file_path = file_path.with_suffix(f'.{DataFrameExportFormat.XLSX}')
-            dataframe.to.to_excel(
+            dataframe.to_excel(
                 file_path,
                 index_label=index_label,
                 index=export_index,
