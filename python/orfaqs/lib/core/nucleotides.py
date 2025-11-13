@@ -2,6 +2,7 @@
 Nucleotides
 """
 
+import enum
 import logging
 from abc import ABC, abstractmethod
 
@@ -132,36 +133,60 @@ _NUCLEIC_ACID_NAME_LUT = {
 }
 
 
+class StrandType(enum.Enum):
+    NEGATIVE_STRAND = 'negative strand'
+    POSITIVE_STRAND = 'positive strand'
+    SINGLE_STRANDED = 'single-stranded'
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class GenomicSequence:
     """GenomicSequence"""
 
     def __init__(
-        self, sequence: (str | list[str] | list[NucleicAcid]), name: str = None
+        self,
+        sequence: (str | list[str] | list[NucleicAcid]),
+        strand_type: StrandType = None,
+        name: str = None,
     ):
         self._sequence_str: str
         self._name = name
+        self._strand_type = strand_type
 
-        if isinstance(sequence, list):
-            sequence = ''.join(sequence)
+        if isinstance(sequence, GenomicSequence):
+            self._sequence_str = sequence._sequence_str
+            if self._name is None:
+                self._name = sequence._name
+            if self._strand_type is None:
+                self._strand_type = sequence._strand_type
+        else:
+            if isinstance(sequence, list):
+                sequence = ''.join(sequence)
 
-        sequence = sequence.lower()
-        for base in sequence:
-            if base not in list(self.available_bases()):
-                message = (
-                    f'[ERROR] The following symbol {base} is not '
-                    "allowed in GenomicSequence object's of type: "
-                    f'{self.__class__.__name__}'
-                )
-                _logger.error(message)
-                raise ValueError(message)
+            sequence = sequence.lower()
+            for base in sequence:
+                if base not in list(self.available_bases()):
+                    message = (
+                        f'[ERROR] The following symbol {base} is not '
+                        "allowed in GenomicSequence object's of type: "
+                        f'{self.__class__.__name__}'
+                    )
+                    _logger.error(message)
+                    raise ValueError(message)
 
-        self._sequence_str = sequence
+            self._sequence_str = sequence
+
+        if self._strand_type is None:
+            self._strand_type = StrandType.POSITIVE_STRAND
+
         self._base_iterator = self._base_generator()
 
     def __getitem__(self, index) -> any:
         item = self._sequence_str[index]
         if len(item) > 1:
-            return self.__class__(item)
+            return self.__class__(item, self._strand_type, self._name)
 
         return _NUCLEIC_ACID_SYMBOL_LUT[item]
 
@@ -188,12 +213,16 @@ class GenomicSequence:
 
     @staticmethod
     @abstractmethod
-    def base_compliment(base: str | NucleicAcid) -> NucleicAcid:
+    def base_complement(base: str | NucleicAcid) -> NucleicAcid:
         pass
 
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def strand_type(self) -> str:
+        return self._strand_type
 
     @property
     def sequence_str(self) -> str:
@@ -204,34 +233,8 @@ class GenomicSequence:
         return len(self._sequence_str)
 
     @property
-    def compliment(self) -> str:
-        compliment_sequence = ''
-        for base in self._sequence_str:
-            compliment_sequence += self.base_compliment(base).symbol
-        return compliment_sequence
-
-    @property
     def base_iterator(self):
         return self._base_generator
-
-    def reverse_sequence(self):
-        self._sequence_str.reverse()
-
-    def find_sequence(self, sequence_pattern: any) -> int:
-        sequence_pattern_str = None
-        if isinstance(sequence_pattern, str):
-            sequence_pattern_str = sequence_pattern
-        elif isinstance(sequence_pattern, GenomicSequence):
-            sequence_pattern_str = sequence_pattern.sequence_str
-        elif isinstance(sequence_pattern, list):
-            sequence_pattern_str = self.__class__(
-                sequence_pattern
-            ).sequence_str
-
-        if isinstance(sequence_pattern_str, str):
-            return self._sequence_str(sequence_pattern_str)
-
-        return None
 
     def _base_generator(self):
         for base in self._sequence_str:
@@ -249,7 +252,7 @@ class DNASequence(GenomicSequence):
         return list([ADENINE, THYMINE, CYTOSINE, GUANINE])
 
     @staticmethod
-    def base_compliment(base: str | NucleicAcid) -> NucleicAcid:
+    def base_complement(base: str | NucleicAcid) -> NucleicAcid:
         if base not in DNASequence.available_bases():
             message = (
                 f'[ERROR] {base} is not recognized as a nucleic acid for DNA'
@@ -277,7 +280,7 @@ class RNASequence(GenomicSequence):
         return [ADENINE, URACIL, CYTOSINE, GUANINE]
 
     @staticmethod
-    def base_compliment(base: str | NucleicAcid) -> NucleicAcid:
+    def base_complement(base: str | NucleicAcid) -> NucleicAcid:
         if base not in RNASequence.available_bases():
             message = (
                 f'[ERROR] {base} is not recognized as a nucleic acid for RNA'
@@ -301,14 +304,24 @@ class NucleotideUtils:
     """NucleotideUtils"""
 
     @staticmethod
+    def available_strand_types() -> list[StrandType]:
+        return [strand_type for strand_type in StrandType]
+
+    @staticmethod
+    def available_strand_types_str() -> list[str]:
+        return [strand_type.value for strand_type in StrandType]
+
+    @staticmethod
     def create_sequence(
-        sequence: (str | list[str] | list[NucleicAcid]), name: str = None
+        sequence: (str | list[str] | list[NucleicAcid] | GenomicSequence),
+        strand_type: StrandType = None,
+        name: str = None,
     ) -> GenomicSequence:
         try:
-            return DNASequence(sequence, name)
+            return DNASequence(sequence, strand_type, name)
         except ValueError:
             try:
-                return RNASequence(sequence, name)
+                return RNASequence(sequence, strand_type, name)
             except ValueError as e:
                 message = (
                     '[ERROR] The sequence could not be interpreted as '
@@ -380,3 +393,66 @@ class NucleotideUtils:
             symbol_list.append(base.symbol)
 
         return ''.join(symbol_list)
+
+    @staticmethod
+    def reverse_str(genomic_sequence: GenomicSequence) -> str:
+        return genomic_sequence.sequence_str[::-1]
+
+    @staticmethod
+    def complement_str(genomic_sequence: GenomicSequence) -> str:
+        complement_str = ''
+        for base in genomic_sequence.sequence_str:
+            complement_str += genomic_sequence.base_complement(base).symbol
+
+        return complement_str
+
+    @staticmethod
+    def reverse_complement_str(genomic_sequence: GenomicSequence) -> str:
+        return NucleotideUtils.complement_str(genomic_sequence)[::-1]
+
+    @staticmethod
+    def reverse_complement(
+        genomic_sequence: GenomicSequence,
+    ) -> GenomicSequence:
+        reverse_complement_sequence = NucleotideUtils.reverse_complement_str(
+            genomic_sequence
+        )
+        name = genomic_sequence.name
+        strand_type = genomic_sequence.strand_type
+        if strand_type is StrandType.POSITIVE_STRAND:
+            strand_type = StrandType.NEGATIVE_STRAND
+        elif strand_type is StrandType.NEGATIVE_STRAND:
+            strand_type = StrandType.POSITIVE_STRAND
+
+        if isinstance(genomic_sequence, DNASequence):
+            return DNASequence(
+                sequence=reverse_complement_sequence,
+                name=name,
+                strand_type=strand_type,
+            )
+        elif isinstance(genomic_sequence, RNASequence):
+            return RNASequence(
+                sequence=reverse_complement_sequence,
+                name=name,
+                strand_type=strand_type,
+            )
+        return None
+
+    @staticmethod
+    def find_sequence(
+        genomic_sequence: GenomicSequence, sequence_pattern: any
+    ) -> int:
+        sequence_pattern_str = None
+        if isinstance(sequence_pattern, str):
+            sequence_pattern_str = sequence_pattern
+        elif isinstance(sequence_pattern, GenomicSequence):
+            sequence_pattern_str = sequence_pattern.sequence_str
+        elif isinstance(sequence_pattern, list):
+            sequence_pattern_str = genomic_sequence.__class__(
+                sequence_pattern
+            ).sequence_str
+
+        if isinstance(sequence_pattern_str, str):
+            return genomic_sequence.sequence_str(sequence_pattern_str)
+
+        return None

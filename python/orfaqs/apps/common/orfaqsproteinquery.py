@@ -13,6 +13,8 @@ from orfaqs.apps.common.orfaqsproteindiscovery import (
     ORFaqsProteinDiscoveryRecordKeys,
     RNAReadingFrame,
 )
+
+from orfaqs.lib.core.nucleotides import NucleotideUtils
 from orfaqs.lib.utils.databaseutils import (
     BaseTable,
     PostgresDatabaseUtils,
@@ -52,6 +54,7 @@ class ORFaqsDiscoveredProteinTableSchema(ORFaqsProteinDiscoveryRecordKeys):
         return [
             ORFaqsDiscoveredProteinTableSchema.UID_KEY,
             ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY,
+            ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinTableSchema.READING_FRAME_KEY,
             ORFaqsDiscoveredProteinTableSchema.RNA_SEQUENCE_POSITION_KEY,
             ORFaqsDiscoveredProteinTableSchema.PROTEIN_KEY,
@@ -79,6 +82,7 @@ class _ORFaqsDiscoveredProteinsTableFactory:
 
             __tablename__ = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
             ACCESSION_NUMBER_MAX_CHAR_LENGTH = 64
+            STRAND_TYPE_MAX_CHAR_LENGTH = 32
             UID_MAX_CHAR_LENGTH = 64
 
             @staticmethod
@@ -97,6 +101,14 @@ class _ORFaqsDiscoveredProteinsTableFactory:
                 return (
                     'The accession number assigned to the sequence from '
                     'which the protein was translated.'
+                )
+
+            @staticmethod
+            def strand_type_comment() -> str:
+                strand_types_str = NucleotideUtils.available_strand_types_str()
+                return (
+                    f'The genomic sequence strand {strand_types_str} used '
+                    'during translation.'
                 )
 
             @staticmethod
@@ -135,6 +147,13 @@ class _ORFaqsDiscoveredProteinsTableFactory:
                 ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY,
                 sqlalchemy.String(ACCESSION_NUMBER_MAX_CHAR_LENGTH),
                 comment=accession_number_comment(),
+            )
+
+            strand_type = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY,
+                sqlalchemy.String(STRAND_TYPE_MAX_CHAR_LENGTH),
+                nullable=False,
+                comment=strand_type_comment(),
             )
 
             reading_frame = SqlAlchemyUtils.create_column(
@@ -223,6 +242,7 @@ class ORFaqsProteinQueryUtils:
     @staticmethod
     def _create_uid(
         accession_number: str,
+        strand_type: str,
         reading_frame: int,
         rna_sequence_position: int,
         protein_length: str,
@@ -230,6 +250,7 @@ class ORFaqsProteinQueryUtils:
         uid_str = ':'.join(
             [
                 accession_number,
+                strand_type,
                 str(reading_frame),
                 str(rna_sequence_position),
                 str(protein_length),
@@ -239,9 +260,12 @@ class ORFaqsProteinQueryUtils:
 
     @staticmethod
     def _add_database_primary_key_column(proteins_dataframe: pd.DataFrame):
-        def create_hash(row: pd.Series):
+        def create_uid(row: pd.Series):
             accession_number = row[
                 ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY
+            ]
+            strand_type = row[
+                ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY
             ]
             reading_frame = row[
                 ORFaqsDiscoveredProteinTableSchema.READING_FRAME_KEY
@@ -254,13 +278,14 @@ class ORFaqsProteinQueryUtils:
             ]
             return ORFaqsProteinQueryUtils._create_uid(
                 accession_number=accession_number,
+                strand_type=strand_type,
                 reading_frame=reading_frame,
                 rna_sequence_position=rna_sequence_position,
                 protein_length=protein_length,
             )
 
         proteins_dataframe[ORFaqsDiscoveredProteinTableSchema.UID_KEY] = (
-            proteins_dataframe.apply(create_hash, axis='columns')
+            proteins_dataframe.apply(create_uid, axis='columns')
         )
 
     @staticmethod
