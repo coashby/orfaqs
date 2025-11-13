@@ -134,9 +134,9 @@ _NUCLEIC_ACID_NAME_LUT = {
 
 
 class StrandType(enum.Enum):
-    NEGATIVE_STRAND = 'negative strand'
-    POSITIVE_STRAND = 'positive strand'
-    SINGLE_STRANDED = 'single-stranded'
+    NEGATIVE_STRAND = 'negative_strand'
+    POSITIVE_STRAND = 'positive_strand'
+    SINGLE_STRANDED = 'single_stranded'
 
     def __str__(self) -> str:
         return self.value

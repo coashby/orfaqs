@@ -99,6 +99,9 @@ class RNAReadingFrame(Enum):
     SECOND_FRAME = 2
     THIRD_FRAME = 3
 
+    def __str__(self):
+        return str(self.value)
+
 
 _RNA_READING_FRAMES = [reading_frame for reading_frame in RNAReadingFrame]
 

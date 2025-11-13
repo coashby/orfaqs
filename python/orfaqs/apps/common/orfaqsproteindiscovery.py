@@ -91,7 +91,7 @@ class ORFaqsProteinDiscoveryRecord(ORFaqsProteinDiscoveryRecordKeys):
             if ORFaqsProteinDiscoveryRecord.ACCESSION_NUMBER_KEY == record_key:
                 record_map[record_key] = self._accession_number
             elif ORFaqsProteinDiscoveryRecord.STRAND_TYPE_KEY == record_key:
-                record_map[record_key] = self._strand_type.value
+                record_map[record_key] = str(self._strand_type)
             elif ORFaqsProteinDiscoveryRecord.READING_FRAME_KEY == record_key:
                 record_map[record_key] = self._reading_frame.value
             elif (
@@ -185,13 +185,13 @@ class ORFaqsProteinDiscoveryUtils:
             file_name = f'{timestamp_str}-{file_name}'
 
         if strand_type is not None:
-            file_name = f'{strand_type.value}-{file_name}'
+            file_name = f'{strand_type}-{file_name}'
 
         if accession_number is not None:
             file_name = f'{accession_number}-{file_name}'
 
         if reading_frame is not None:
-            file_name = f'{file_name}-reading-frame-{reading_frame.value}'
+            file_name = f'{file_name}-reading-frame-{reading_frame}'
 
         if custom_tag is not None:
             file_name = f'{file_name}-{custom_tag}'
@@ -409,7 +409,7 @@ class ORFaqsProteinDiscoveryUtils:
         if display_progress:
             tqdm_description = (
                 'Translating RNA from start codons in '
-                f'reading frame {reading_frame.value}...'
+                f'reading frame {reading_frame}...'
             )
             if thread_id is not None:
                 tqdm_description = f'[Thread {thread_id}] {tqdm_description}'
@@ -497,7 +497,7 @@ class ORFaqsProteinDiscoveryUtils:
                 # Skip processing of this reading frame.
                 message += (
                     'No start codons were found for '
-                    f'reading frame {reading_frame.value}.'
+                    f'reading frame {reading_frame}.'
                 )
                 _logger.info(message)
                 print(message)
@@ -507,7 +507,7 @@ class ORFaqsProteinDiscoveryUtils:
             # Process start codons
             message += (
                 f'{number_start_codons} start codons found for '
-                f'reading frame {reading_frame.value}.'
+                f'reading frame {reading_frame}.'
             )
             _logger.info(message)
             print(message)
