@@ -65,6 +65,15 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     arg_type=str,
                 ),
                 CliUtil.create_new_arg_descriptor(
+                    ('--include_reverse_complement'),
+                    arg_help=(
+                        'If enabled, the protein discovery includes '
+                        'translation of the reverse complement of provided '
+                        'sequence or sequences.'
+                    ),
+                    action='store_true',
+                ),
+                CliUtil.create_new_arg_descriptor(
                     ('--export_format'),
                     arg_help=(
                         'Defines the exported format of the resulting data. '
@@ -120,28 +129,32 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
     def _run(
         input_sequence: str | pathlib.Path,
         accession_number: str = None,
+        include_reverse_complement: bool = True,
         output_directory: str | pathlib.Path = None,
         job_id: str = None,
         export_format: str = None,
         **kwargs,
     ):
+        #######################################################################
+        # Create the local output directory path
         if output_directory is None:
             output_directory = './'
 
         output_directory = DirectoryUtils.make_path_object(output_directory)
         output_directory = output_directory.joinpath(
-            ORFaqsProteinDiscoveryUtils.default_output_directory()
+            ORFaqsProteinDiscovery.default_output_directory()
         )
-
-        # Create the local output directory and output file path
         output_directory = DirectoryUtils.make_path_object(output_directory)
         if isinstance(job_id, str):
             output_directory = output_directory.joinpath(job_id)
+
+        DirectoryUtils.mkdir_path(output_directory)
 
         if DirectoryUtils.is_file(input_sequence):
             # Try processing as a FASTA file
             ORFaqsProteinDiscoveryUtils.process_fasta_file(
                 fasta_file_path=input_sequence,
+                include_reverse_complement=include_reverse_complement,
                 export_format=export_format,
                 output_directory=output_directory,
             )
@@ -150,6 +163,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             ORFaqsProteinDiscoveryUtils.process_genomic_sequence(
                 genomic_sequence=input_sequence,
                 accession_number=accession_number,
+                include_reverse_complement=include_reverse_complement,
                 export_format=export_format,
                 output_directory=output_directory,
             )
