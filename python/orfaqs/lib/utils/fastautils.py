@@ -2,11 +2,21 @@
 FASTA Utils
 """
 
+import enum
+import logging
 import os
 import re
 
-from orfaqs.lib.core.nucleotides import GenomicSequence, NucleotideUtils
+from orfaqs.lib.core.proteins import Protein
+from orfaqs.lib.core.nucleotides import (
+    DNASequence,
+    RNASequence,
+    NucleotideUtils,
+)
+from orfaqs.lib.core.sequence import Sequence
 from orfaqs.lib.utils.jsonutils import JsonUtils
+
+_logger = logging.getLogger(__name__)
 
 _SUPPORTED_ACCESSION_NUMBER_PREFIXES: list[str] = [
     'NC_',
@@ -22,23 +32,57 @@ _SUPPORTED_ACCESSION_NUMBER_PREFIXES: list[str] = [
 ]
 
 
+class FASTASequenceType(enum.Enum):
+    DNA = enum.auto()
+    RNA = enum.auto()
+    AMINO_ACID = enum.auto()
+
+
 class FASTASequence:
     """FASTASequence"""
 
-    ACCESSION_NUMBER_DELIM = '>'
+    SEQUENCE_IDENTIFIER_DELIM = '>'
+    PROTEIN_SEQUENCE_STOP_CODON_DELIM = '*'
     HEADER_INFO_ACCESSION_NUMBER_KEY = 'accession_number'
     HEADER_INFO_SEQUENCE_DESCRIPTION = 'sequence_description'
 
-    def __init__(self, header_str: str, sequence: str | list[str]):
+    def __init__(self, header_str: str, sequence_str: str):
         (self._accession_number, self._header_info) = (
             FASTASequence._parse_header(header_str)
         )
-        self._sequence_name = JsonUtils.as_json_string(
-            self._header_info, indent=None
+        self._name = JsonUtils.as_json_string(self._header_info, indent=None)
+        sequence_str = sequence_str.replace(
+            FASTASequence.PROTEIN_SEQUENCE_STOP_CODON_DELIM, ''
         )
-        self._sequence = NucleotideUtils.create_sequence(
-            sequence, self._sequence_name
-        )
+        self._sequence = None
+        try:
+            self._sequence = NucleotideUtils.create_sequence(
+                sequence=sequence_str, name=self._name
+            )
+        except ValueError:
+            try:
+                self._sequence = Protein(
+                    sequence=sequence_str,
+                    name=self.name,
+                    sequence_complete=True,
+                )
+            except ValueError as e:
+                message = (
+                    '[ERROR] No Sequence type supports the provided '
+                    'sequence string. Supported types are: genomic '
+                    'sequence(RNA and DNA) and protein sequences.\n'
+                    f'{e}'
+                )
+                _logger.error(message)
+                raise ValueError(message) from e
+
+        self._sequence_type: FASTASequenceType = None
+        if isinstance(self._sequence, DNASequence):
+            self._sequence_type = FASTASequenceType.DNA
+        elif isinstance(self._sequence, RNASequence):
+            self._sequence_type = FASTASequenceType.RNA
+        elif isinstance(self._sequence, Protein):
+            self._sequence_type = FASTASequenceType.AMINO_ACID
 
     @property
     def header_info(self) -> dict:
@@ -49,19 +93,23 @@ class FASTASequence:
         return self._accession_number
 
     @property
-    def sequence_name(self) -> str:
-        return self._sequence_name
+    def name(self) -> str:
+        return self._name
 
     @property
-    def sequence(self) -> GenomicSequence:
+    def sequence(self) -> Sequence:
         return self._sequence
+
+    @property
+    def sequence_type(self) -> FASTASequenceType:
+        return self._sequence_type
 
     @staticmethod
     def _parse_header(header_str: str) -> tuple[str, dict[str, str]]:
         if not FASTAUtils.is_fasta_header(header_str):
             return None
         header_str = header_str.replace(
-            FASTASequence.ACCESSION_NUMBER_DELIM, ''
+            FASTASequence.SEQUENCE_IDENTIFIER_DELIM, ''
         )
 
         # Grab the individual fields of the header
@@ -97,12 +145,10 @@ class FASTASequence:
 class FASTAUtils:
     """FASTAUtils"""
 
-    _SEQUENCE_IDENTIFIER_DELIM = '>'
-
     @staticmethod
     def is_fasta_header(line_str: str) -> bool:
         return (len(line_str) > 0) and (
-            line_str[0] == FASTAUtils._SEQUENCE_IDENTIFIER_DELIM
+            line_str[0] == FASTASequence.SEQUENCE_IDENTIFIER_DELIM
         )
 
     @staticmethod
@@ -126,10 +172,13 @@ class FASTAUtils:
                 ):
                     line_index += 1
                 # Append a new FASTASequence object to the list
+                sequence_str = ''.join(
+                    fasta_file_lines[sequence_start_index:line_index]
+                )
                 fasta_sequences.append(
                     FASTASequence(
                         header_str,
-                        fasta_file_lines[sequence_start_index:line_index],
+                        sequence_str,
                     )
                 )
 

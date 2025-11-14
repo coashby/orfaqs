@@ -5,6 +5,8 @@ Contains definitions for all genetically encoded amino acids.
 
 from abc import ABC, abstractmethod
 
+from orfaqs.lib.core.sequence import Sequence
+
 
 class AminoAcid(ABC):
     """AminoAcid"""
@@ -438,13 +440,55 @@ _AVAILABLE_AMINO_ACIDS: list[AminoAcid] = [
     PYRROLYSINE,
 ]
 
+_AMINO_ACID_SYMBOLS = [
+    amino_acid.symbol for amino_acid in _AVAILABLE_AMINO_ACIDS
+]
 _AMINO_ACID_SYMBOL_LUT = {
     amino_acid.symbol: amino_acid for amino_acid in _AVAILABLE_AMINO_ACIDS
 }
 
 
+class AminoAcidSequence(Sequence):
+    """AminoAcidSequence"""
+
+    def __init__(
+        self,
+        sequence: (AminoAcid | list[AminoAcid] | str) = None,
+        name: str = None,
+    ):
+        if isinstance(sequence, AminoAcid):
+            sequence = [sequence]
+        super().__init__(sequence=sequence, name=name)
+
+    @property
+    def amino_acid_chain(self) -> list[AminoAcid]:
+        return [
+            _AMINO_ACID_SYMBOL_LUT[symbol] for symbol in self._sequence_str
+        ]
+
+    @staticmethod
+    def available_amino_acids() -> list[AminoAcid]:
+        return _AVAILABLE_AMINO_ACIDS
+
+    @classmethod
+    def available_symbols(cls) -> list[str]:
+        return [
+            amino_acid.symbol for amino_acid in cls.available_amino_acids()
+        ]
+
+    def add_amino_acid(self, amino_acid: (AminoAcid | str)):
+        if isinstance(amino_acid, AminoAcid):
+            amino_acid = amino_acid.symbol
+
+        self._sequence_str += amino_acid
+
+
 class AminoAcidUtils:
     """AminoAcidUtils"""
+
+    @staticmethod
+    def available_symbols() -> list[str]:
+        return _AMINO_ACID_SYMBOLS
 
     @staticmethod
     def available_amino_acids() -> list[AminoAcid]:

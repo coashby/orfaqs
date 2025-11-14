@@ -6,6 +6,8 @@ import enum
 import logging
 from abc import ABC, abstractmethod
 
+from orfaqs.lib.core.sequence import Sequence
+
 _logger = logging.getLogger(__name__)
 
 
@@ -142,7 +144,7 @@ class StrandType(enum.Enum):
         return self.value
 
 
-class GenomicSequence:
+class GenomicSequence(Sequence):
     """GenomicSequence"""
 
     def __init__(
@@ -151,8 +153,7 @@ class GenomicSequence:
         strand_type: StrandType = None,
         name: str = None,
     ):
-        self._sequence_str: str
-        self._name = name
+        super().__init__(sequence=sequence, name=name)
         self._strand_type = strand_type
 
         if isinstance(sequence, GenomicSequence):
@@ -161,27 +162,9 @@ class GenomicSequence:
                 self._name = sequence._name
             if self._strand_type is None:
                 self._strand_type = sequence._strand_type
-        else:
-            if isinstance(sequence, list):
-                sequence = ''.join(sequence)
-
-            sequence = sequence.lower()
-            for base in sequence:
-                if base not in list(self.available_bases()):
-                    message = (
-                        f'[ERROR] The following symbol {base} is not '
-                        "allowed in GenomicSequence object's of type: "
-                        f'{self.__class__.__name__}'
-                    )
-                    _logger.error(message)
-                    raise ValueError(message)
-
-            self._sequence_str = sequence
 
         if self._strand_type is None:
             self._strand_type = StrandType.POSITIVE_STRAND
-
-        self._base_iterator = self._base_generator()
 
     def __getitem__(self, index) -> any:
         item = self._sequence_str[index]
@@ -190,26 +173,14 @@ class GenomicSequence:
 
         return _NUCLEIC_ACID_SYMBOL_LUT[item]
 
-    def __contains__(self, region: any) -> bool:
-        if isinstance(region, str):
-            return region in self._sequence_str
-        elif isinstance(region, GenomicSequence):
-            return region._sequence_str in self._sequence_str
-        elif isinstance(region, list):
-            return self.__class__(region)._sequence_str in self._sequence_str
-
-        return False
-
-    def __str__(self) -> str:
-        return self._sequence_str
-
-    def __len__(self) -> int:
-        return len(self._sequence_str)
-
     @staticmethod
     @abstractmethod
     def available_bases() -> list[NucleicAcid]:
         pass
+
+    @classmethod
+    def available_symbols(cls) -> list[str]:
+        return [base.symbol for base in cls.available_bases()]
 
     @staticmethod
     @abstractmethod
@@ -217,31 +188,8 @@ class GenomicSequence:
         pass
 
     @property
-    def name(self) -> str:
-        return self._name
-
-    @property
     def strand_type(self) -> str:
         return self._strand_type
-
-    @property
-    def sequence_str(self) -> str:
-        return self._sequence_str
-
-    @property
-    def sequence_length(self) -> int:
-        return len(self._sequence_str)
-
-    @property
-    def base_iterator(self):
-        return self._base_generator
-
-    def _base_generator(self):
-        for base in self._sequence_str:
-            yield base
-
-    def reset_base_iterator(self):
-        self._base_iterator = self._base_generator()
 
 
 class DNASequence(GenomicSequence):

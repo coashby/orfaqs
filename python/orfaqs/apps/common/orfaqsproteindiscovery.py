@@ -102,7 +102,7 @@ class ORFaqsProteinDiscoveryRecord(ORFaqsProteinDiscoveryRecordKeys):
             elif ORFaqsProteinDiscoveryRecord.PROTEIN_KEY == record_key:
                 record_map[record_key] = self._protein
             elif ORFaqsProteinDiscoveryRecord.PROTEIN_LENGTH_KEY == record_key:
-                record_map[record_key] = self._protein.number_amino_acids
+                record_map[record_key] = self._protein.sequence_length
             else:
                 message = (
                     '[ERROR] Missing record key assignment.\n'
@@ -759,7 +759,7 @@ class ORFaqsProteinDiscoveryUtils:
 
         for fasta_sequence in process_list:
             print('-------------------------------------------------------')
-            print(f'Processing Sequence: {fasta_sequence.sequence_name}')
+            print(f'Processing Sequence: {fasta_sequence.name}')
             current_sequence_output_directory = output_directory.joinpath(
                 f'{fasta_sequence.accession_number}'
             )
