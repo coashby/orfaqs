@@ -5,13 +5,17 @@ ORFaqs Protein Query common app classes, resources, and utility functions.
 import logging
 import os
 import pandas as pd
-import psycopg2
+import pathlib
 import typing
 
 from orfaqs.apps.common.orfaqsproteindiscovery import (
     ORFaqsProteinDiscoveryUtils,
-    ORFaqsProteinDiscoveryRecordKeys,
     RNAReadingFrame,
+)
+from orfaqs.apps.common.orfaqsrecords import (
+    ORFaqsDiscoveredProteinRecordKeys,
+    ORFaqsProteinRecord,
+    ORFaqsRecordUtils,
 )
 
 from orfaqs.lib.core.nucleotides import NucleotideUtils
@@ -22,6 +26,10 @@ from orfaqs.lib.utils.databaseutils import (
     SqlAlchemyUtils,
 )
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
+from orfaqs.lib.utils.fastautils import (
+    FASTASequenceType,
+    FASTAUtils,
+)
 from orfaqs.lib.utils.pandasutils import (
     DataFrameExportFormat,
     PandasUtils,
@@ -46,43 +54,90 @@ _database_connection_options = (
 _database_connection_options.database = _ORFAQS_PROTEIN_QUERY_DATABASE
 
 
-class ORFaqsDiscoveredProteinTableSchema(ORFaqsProteinDiscoveryRecordKeys):
+class ORFaqsDiscoveredProteinTableSchema(ORFaqsDiscoveredProteinRecordKeys):
     UID_KEY = 'uid'
 
     @staticmethod
     def columns() -> list[str]:
         return [
             ORFaqsDiscoveredProteinTableSchema.UID_KEY,
-            ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY,
+            ORFaqsDiscoveredProteinTableSchema.SOURCE_UID_KEY,
             ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinTableSchema.READING_FRAME_KEY,
-            ORFaqsDiscoveredProteinTableSchema.RNA_SEQUENCE_POSITION_KEY,
+            ORFaqsDiscoveredProteinTableSchema.DNA_SEQUENCE_POSITION_KEY,
             ORFaqsDiscoveredProteinTableSchema.PROTEIN_KEY,
             ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY,
         ]
 
 
-class _ORFaqsDiscoveredProteinsTableFactory:
-    """_ORFaqsDiscoveredProteinsTableUtil"""
-
-    TABLE_NAME = 'discovered_proteins'
+class _ORFaqsProteinTableUtils:
+    @staticmethod
+    def uid_comment() -> str:
+        return 'The unique id of the entry.'
 
     @staticmethod
-    def _define_table():
+    def source_uid_comment() -> str:
+        return (
+            'The identifier assigned to the sequence from '
+            'which the protein was translated.'
+        )
+
+    @staticmethod
+    def strand_type_comment() -> str:
+        strand_types_str = NucleotideUtils.available_strand_types_str()
+        return (
+            f'The genomic sequence strand {strand_types_str} used '
+            'during translation.'
+        )
+
+    @staticmethod
+    def reading_frame_comment() -> str:
+        return (
+            'The reading frame (1, 2, or 3) from which the '
+            'protein was transcribed.'
+        )
+
+    @staticmethod
+    def rna_sequence_position_comment() -> str:
+        return (
+            'The position of the start codon in the RNA sequence '
+            'from which the protein was transcribed.'
+        )
+
+    @staticmethod
+    def protein_comment() -> str:
+        return (
+            'The protein represented by its single-letter '
+            'amino acid abbreviations.'
+        )
+
+    @staticmethod
+    def protein_length_comment() -> str:
+        return 'The number of amino acids in the protein sequence.'
+
+
+class _ORFaqsReferenceProteinsTableFactory:
+    """_ORFaqsReferenceProteinsTableFactory"""
+
+    TABLE_NAME = 'reference_proteins'
+
+    @staticmethod
+    def define_table():
         """
         Defines the discovered_proteins table when called iff the table
         definition does NOT exists in the base class.
         """
-        table_name = 'discovered_proteins'
-        if table_name in BaseTable.metadata.tables:
+
+        if (
+            _ORFaqsReferenceProteinsTableFactory.TABLE_NAME
+            in BaseTable.metadata.tables
+        ):
             return
 
-        class ORFaqsDiscoveredProteinsTable(BaseTable):
-            """ORFaqsDiscoveredProteinTable"""
+        class _ORFaqsReferenceProteinsTable(BaseTable):
+            """_ORFaqsReferenceProteinsTable"""
 
-            __tablename__ = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
-            ACCESSION_NUMBER_MAX_CHAR_LENGTH = 64
-            STRAND_TYPE_MAX_CHAR_LENGTH = 32
+            __tablename__ = _ORFaqsReferenceProteinsTableFactory.TABLE_NAME
             UID_MAX_CHAR_LENGTH = 64
 
             @staticmethod
@@ -92,97 +147,107 @@ class _ORFaqsDiscoveredProteinsTableFactory:
                 ]
                 return f'reading_frame IN {tuple(reading_frame_values)}'
 
-            @staticmethod
-            def uid_comment() -> str:
-                return 'The unique id of the entry.'
-
-            @staticmethod
-            def accession_number_comment() -> str:
-                return (
-                    'The accession number assigned to the sequence from '
-                    'which the protein was translated.'
-                )
-
-            @staticmethod
-            def strand_type_comment() -> str:
-                strand_types_str = NucleotideUtils.available_strand_types_str()
-                return (
-                    f'The genomic sequence strand {strand_types_str} used '
-                    'during translation.'
-                )
-
-            @staticmethod
-            def reading_frame_comment() -> str:
-                return (
-                    'The reading frame (1, 2, or 3) from which the '
-                    'protein was transcribed.'
-                )
-
-            @staticmethod
-            def rna_sequence_position_comment() -> str:
-                return (
-                    'The position of the start codon in the RNA sequence '
-                    'from which the protein was transcribed.'
-                )
-
-            @staticmethod
-            def protein_comment() -> str:
-                return (
-                    'The protein represented by its single-letter '
-                    'amino acid abbreviations.'
-                )
-
-            @staticmethod
-            def protein_length_comment() -> str:
-                return 'The number of amino acids in the protein sequence.'
-
             uid = SqlAlchemyUtils.create_column(
                 ORFaqsDiscoveredProteinTableSchema.UID_KEY,
                 sqlalchemy.String(UID_MAX_CHAR_LENGTH),
                 primary_key=True,
-                comment=uid_comment(),
-            )
-
-            accession_number = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY,
-                sqlalchemy.String(ACCESSION_NUMBER_MAX_CHAR_LENGTH),
-                comment=accession_number_comment(),
-            )
-
-            strand_type = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY,
-                sqlalchemy.String(STRAND_TYPE_MAX_CHAR_LENGTH),
-                nullable=False,
-                comment=strand_type_comment(),
-            )
-
-            reading_frame = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinTableSchema.READING_FRAME_KEY,
-                sqlalchemy.Integer,
-                nullable=False,
-                comment=reading_frame_comment(),
-            )
-
-            rna_sequence_position = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinTableSchema.RNA_SEQUENCE_POSITION_KEY,
-                sqlalchemy.Integer,
-                sqlalchemy.CheckConstraint(_reading_frame_check_constraint()),
-                nullable=False,
-                comment=rna_sequence_position_comment(),
+                comment=_ORFaqsProteinTableUtils.uid_comment(),
             )
 
             protein = SqlAlchemyUtils.create_column(
                 ORFaqsDiscoveredProteinTableSchema.PROTEIN_KEY,
                 sqlalchemy.String,
                 nullable=False,
-                comment=protein_comment(),
+                comment=_ORFaqsProteinTableUtils.protein_comment(),
             )
 
             protein_length = SqlAlchemyUtils.create_column(
                 ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY,
                 sqlalchemy.Integer,
                 nullable=False,
-                comment=protein_length_comment(),
+                comment=_ORFaqsProteinTableUtils.protein_length_comment(),
+            )
+
+
+class _ORFaqsDiscoveredProteinsTableFactory:
+    """_ORFaqsDiscoveredProteinsTableUtil"""
+
+    TABLE_NAME = 'discovered_proteins'
+
+    @staticmethod
+    def define_table():
+        """
+        Defines the discovered_proteins table when called iff the table
+        definition does NOT exists in the base class.
+        """
+        if (
+            _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
+            in BaseTable.metadata.tables
+        ):
+            return
+
+        class ORFaqsDiscoveredProteinsTable(BaseTable):
+            """ORFaqsDiscoveredProteinTable"""
+
+            __tablename__ = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
+            UID_MAX_CHAR_LENGTH = 64
+            SOURCE_UID_MAX_CHAR_LENGTH = 64
+            STRAND_TYPE_MAX_CHAR_LENGTH = 32
+
+            @staticmethod
+            def _reading_frame_check_constraint() -> str:
+                reading_frame_values = [
+                    reading_frame.value for reading_frame in RNAReadingFrame
+                ]
+                return f'reading_frame IN {tuple(reading_frame_values)}'
+
+            uid = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.UID_KEY,
+                sqlalchemy.String(UID_MAX_CHAR_LENGTH),
+                primary_key=True,
+                comment=_ORFaqsProteinTableUtils.uid_comment(),
+            )
+
+            source_uid = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.SOURCE_UID_KEY,
+                sqlalchemy.String(SOURCE_UID_MAX_CHAR_LENGTH),
+                comment=_ORFaqsProteinTableUtils.source_uid_comment(),
+            )
+
+            strand_type = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY,
+                sqlalchemy.String(STRAND_TYPE_MAX_CHAR_LENGTH),
+                nullable=False,
+                comment=_ORFaqsProteinTableUtils.strand_type_comment(),
+            )
+
+            reading_frame = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.READING_FRAME_KEY,
+                sqlalchemy.Integer,
+                nullable=False,
+                comment=_ORFaqsProteinTableUtils.reading_frame_comment(),
+            )
+
+            rna_sequence_position = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.DNA_SEQUENCE_POSITION_KEY,
+                sqlalchemy.Integer,
+                sqlalchemy.CheckConstraint(_reading_frame_check_constraint()),
+                nullable=False,
+                comment=_ORFaqsProteinTableUtils.rna_sequence_position_comment(),
+            )
+
+            protein = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.PROTEIN_KEY,
+                sqlalchemy.String,
+                nullable=False,
+                comment=_ORFaqsProteinTableUtils.protein_comment(),
+            )
+
+            protein_length = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY,
+                sqlalchemy.Integer,
+                nullable=False,
+                comment=_ORFaqsProteinTableUtils.protein_length_comment(),
             )
 
 
@@ -233,7 +298,15 @@ class ORFaqsProteinQueryUtils:
 
     @staticmethod
     def _create_orfaqs_discovered_proteins_table():
-        _ORFaqsDiscoveredProteinsTableFactory._define_table()
+        _ORFaqsDiscoveredProteinsTableFactory.define_table()
+        PostgresDatabaseUtils.create_table(
+            BaseTable,
+            _database_connection_options,
+        )
+
+    @staticmethod
+    def _create_orfaqs_reference_proteins_table():
+        _ORFaqsReferenceProteinsTableFactory.define_table()
         PostgresDatabaseUtils.create_table(
             BaseTable,
             _database_connection_options,
@@ -241,7 +314,7 @@ class ORFaqsProteinQueryUtils:
 
     @staticmethod
     def _create_uid(
-        accession_number: str,
+        uid: str,
         strand_type: str,
         reading_frame: int,
         rna_sequence_position: int,
@@ -249,7 +322,7 @@ class ORFaqsProteinQueryUtils:
     ) -> str:
         uid_str = ':'.join(
             [
-                accession_number,
+                uid,
                 strand_type,
                 str(reading_frame),
                 str(rna_sequence_position),
@@ -261,9 +334,7 @@ class ORFaqsProteinQueryUtils:
     @staticmethod
     def _add_database_primary_key_column(proteins_dataframe: pd.DataFrame):
         def create_uid(row: pd.Series):
-            accession_number = row[
-                ORFaqsDiscoveredProteinTableSchema.ACCESSION_NUMBER_KEY
-            ]
+            uid = row[ORFaqsDiscoveredProteinTableSchema.SOURCE_UID_KEY]
             strand_type = row[
                 ORFaqsDiscoveredProteinTableSchema.STRAND_TYPE_KEY
             ]
@@ -271,13 +342,13 @@ class ORFaqsProteinQueryUtils:
                 ORFaqsDiscoveredProteinTableSchema.READING_FRAME_KEY
             ]
             rna_sequence_position = row[
-                ORFaqsDiscoveredProteinTableSchema.RNA_SEQUENCE_POSITION_KEY
+                ORFaqsDiscoveredProteinTableSchema.DNA_SEQUENCE_POSITION_KEY
             ]
             protein_length = row[
                 ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY
             ]
             return ORFaqsProteinQueryUtils._create_uid(
-                accession_number=accession_number,
+                uid=uid,
                 strand_type=strand_type,
                 reading_frame=reading_frame,
                 rna_sequence_position=rna_sequence_position,
@@ -341,29 +412,32 @@ class ORFaqsProteinQueryUtils:
         """
         #######################################################################
         # Gather all discovery files.
-        discovery_files: list[os.PathLike] = []
+        input_file_paths: list[pathlib.Path] = []
         if DirectoryUtils.is_file(input_path):
-            discovery_files.append(input_path)
+            input_file_paths.append(input_path)
+
         elif DirectoryUtils.is_directory(input_path):
             # Grab all files from the directory. In discoveries involving
             # multiple genes, discovery files will be organized in
             # subdirectories.
-            file_paths = DirectoryUtils.glob_files(input_path, recursive=True)
-            discovery_file_name = (
-                ORFaqsProteinDiscoveryUtils.exported_file_name()
+            input_file_paths = DirectoryUtils.glob_files(
+                input_path, recursive=True
             )
-            for file_path in file_paths:
-                # Check that contents are indeed, formatted results from the
-                # ORFaqsProteinDiscoveryUtils class.
-                file_type = file_path.suffix
-                expected_file_name_ending = f'{discovery_file_name}{file_type}'
-                if (
-                    (expected_file_name_ending in file_path.name)
-                    and ORFaqsProteinDiscoveryUtils.is_valid_discovered_proteins_file(
-                        file_path
-                    )
-                ):
-                    discovery_files.append(file_path)
+
+        discovery_file_name = ORFaqsProteinDiscoveryUtils.exported_file_name()
+        discovery_files: list[os.PathLike] = []
+        for file_path in input_file_paths:
+            # Check that contents are indeed, formatted results from the
+            # ORFaqsProteinDiscoveryUtils class.
+            file_type = file_path.suffix
+            expected_file_name_ending = f'{discovery_file_name}{file_type}'
+            if (
+                (expected_file_name_ending in file_path.name)
+                and ORFaqsProteinDiscoveryUtils.is_valid_discovered_proteins_file(
+                    file_path
+                )
+            ):
+                discovery_files.append(file_path)
 
         if len(discovery_files) == 0:
             message = (
@@ -386,27 +460,104 @@ class ORFaqsProteinQueryUtils:
             _database_connection_options
         )
 
-        # 3. Load all the result files into memory.
+        # 3. Load all the result files into memory and write them to the
+        # database table.
         for file_path in discovery_files:
             proteins_dataframe = PandasUtils.read_file_as_dataframe(file_path)
             ORFaqsProteinQueryUtils._prepare_dataframe_for_table(
                 proteins_dataframe
             )
-            try:
-                proteins_dataframe.to_sql(
-                    name=_ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME,
-                    con=database_connection,
-                    if_exists='append',
-                    index=False,
-                    method=SqlAlchemyUtils.psql_insert_copy,
+            PostgresDatabaseUtils.insert_from_dataframe(
+                connection=database_connection,
+                table=_ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME,
+                dataframe=proteins_dataframe,
+                insert_method='append',
+            )
+
+    @staticmethod
+    def load_reference_proteins(
+        workspace: str,
+        input_path: (str | os.PathLike),
+    ):
+        """
+        Reads the contents of the file or directory path provided and loads the
+        data into the defined database. If the provided path is a directory, it
+        must contain the file ORFaqsProteinDiscoveryUtils.exported_file_name()
+
+        Attempts to load data are only made if data checks are passed.
+        Otherwise, the process is aborted and no data is available.
+
+        ---------
+        Arguments
+        ---------
+        workspace (str):
+            The name of the workspace session to load the discovered proteins.
+            Workspaces persist until they are removed by the calling
+            application.
+
+        input_path (str | os.PathLike):
+            A file or directory path to discovered proteins.
+        """
+        #######################################################################
+        # Gather all discovery files.
+        input_file_paths: list[os.PathLike] = []
+        if DirectoryUtils.is_file(input_path):
+            input_file_paths.append(input_path)
+        elif DirectoryUtils.is_directory(input_path):
+            # Grab all files from the directory.
+            input_file_paths = DirectoryUtils.glob_files(
+                input_path, recursive=True
+            )
+
+        fasta_files: list[os.PathLike] = []
+        for file_path in input_file_paths:
+            if FASTAUtils.is_fasta_file(file_path):
+                fasta_files.append(file_path)
+
+        if len(fasta_files) == 0:
+            message = (
+                '[INFO] No protein FASTA files were found.\n'
+                '(debug) ->\n'
+                f'\tinput_path: {input_path}'
+            )
+            _logger.info(message)
+            print(message)
+            return
+
+        #######################################################################
+        # Load all fasta proteins into the default database.
+        # 1. Ensure the desired database and tables exist.
+        ORFaqsProteinQueryUtils.create_workspace(workspace)
+        ORFaqsProteinQueryUtils._create_orfaqs_reference_proteins_table()
+
+        # 2. Connect the the workspace database.
+        database_connection = PostgresDatabaseUtils.connect(
+            _database_connection_options
+        )
+
+        # 3. Load all the result files into memory and write them to the
+        # database table.
+        for file_path in fasta_files:
+            fasta_sequences = FASTAUtils.parse_file(file_path)
+            protein_records: list[ORFaqsProteinRecord] = []
+            for sequence in fasta_sequences:
+                if sequence.sequence_type is not FASTASequenceType.AMINO_ACID:
+                    continue
+
+                protein_records.append(
+                    ORFaqsProteinRecord(sequence.uid, sequence.sequence)
                 )
-            except psycopg2.errors.UniqueViolation:
-                message = (
-                    '[INFO] Duplicate data found in the current '
-                    f'DataFrame object loaded from: {file_path}.'
-                )
-                _logger.info(message)
-                print(message)
+
+            # Organize the results into a DataFrame object.
+            records_dataframe = ORFaqsRecordUtils.orfaqs_records_to_dataframe(
+                protein_records
+            )
+            PostgresDatabaseUtils.insert_from_dataframe(
+                connection=database_connection,
+                table=_ORFaqsReferenceProteinsTableFactory.TABLE_NAME,
+                dataframe=records_dataframe,
+                insert_method='append',
+            )
 
     @staticmethod
     def export_proteins(

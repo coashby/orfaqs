@@ -27,7 +27,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
     @staticmethod
     def cli():
         try:
-            arg_descriptor_list = [
+            args_list = [
                 CliUtil.create_new_arg_descriptor(
                     ('-i', '--input_sequence'),
                     arg_help=(
@@ -57,7 +57,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     arg_type=str,
                 ),
                 CliUtil.create_new_arg_descriptor(
-                    ('--accession_number'),
+                    ('--uid'),
                     arg_help=(
                         'Defines the accession number associated with the '
                         'sequence.'
@@ -98,7 +98,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             ]
 
             cli_arg_parser = CliUtil.create_arg_parser(
-                arg_descriptor_list,
+                args_list,
                 program_name=ORFaqsProteinDiscovery.program_name(),
                 description=(
                     'Discover protein sequences from DNA or RNA sequences.'
@@ -128,7 +128,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
     @staticmethod
     def _run(
         input_sequence: str | pathlib.Path,
-        accession_number: str = None,
+        uid: str = None,
         include_reverse_complement: bool = True,
         output_directory: str | pathlib.Path = None,
         job_id: str = None,
@@ -162,7 +162,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             # Try processing as an sequence string.
             ORFaqsProteinDiscoveryUtils.process_genomic_sequence(
                 genomic_sequence=input_sequence,
-                accession_number=accession_number,
+                uid=uid,
                 include_reverse_complement=include_reverse_complement,
                 export_format=export_format,
                 output_directory=output_directory,

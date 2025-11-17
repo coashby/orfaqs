@@ -11,6 +11,7 @@ from orfaqs.lib.core.nucleotides import (
     THYMINE,
     URACIL,
 )
+from orfaqs.lib.core.sequence import SequenceUtils
 
 
 class RNAPolymerase:
@@ -45,8 +46,10 @@ class RNAPolymerase:
             termination_site = dna_region.sequence_length
 
         dna_region = dna_region[:termination_site]
-        rna_sequence_str = dna_region.sequence_str.replace(
-            THYMINE.symbol.lower(), URACIL.symbol.lower()
+        rna_sequence_str = SequenceUtils.replace_symbols(
+            dna_region,
+            THYMINE.symbol,
+            URACIL.symbol,
         )
         return RNASequence(
             rna_sequence_str, strand_type=strand_type, name=rna_sequence_name

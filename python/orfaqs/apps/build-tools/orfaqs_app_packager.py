@@ -91,7 +91,7 @@ class ORFaqsAppsPackager(ORFaqsApp):
     @staticmethod
     def cli():
         try:
-            arg_descriptor_list = [
+            args_list = [
                 CliUtil.create_new_arg_descriptor(
                     ('-p', '--package_name'),
                     arg_help=('The name of the package to build.'),
@@ -111,7 +111,7 @@ class ORFaqsAppsPackager(ORFaqsApp):
             ]
 
             cli_arg_parser = CliUtil.create_arg_parser(
-                arg_descriptor_list,
+                args_list,
                 program_name=ORFaqsAppsPackager.program_name(),
                 description=('Discover proteins from genomic sequences.'),
                 epilog='',

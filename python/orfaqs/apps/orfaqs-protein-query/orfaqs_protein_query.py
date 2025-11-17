@@ -6,7 +6,6 @@ ORFaqs Protein Analysis
 import enum
 import logging
 import os
-import pathlib
 
 from enum import Enum
 
@@ -44,24 +43,26 @@ class ORFaqsProteinQuery(ORFaqsApp):
     @staticmethod
     def at_least_one_expected_options():
         return [
-            'input_proteins',
+            'discovered_proteins',
             'export_file_path',
             'export_format',
+            'proteins',
             'query',
+            'reference_proteins',
             'remove_workspace',
         ]
 
     @staticmethod
     def cli():
         try:
-            arg_descriptor_list = [
+            args_list = [
                 CliUtil.create_new_arg_descriptor(
-                    ('-i', '--input_proteins'),
+                    ('-p, --proteins'),
                     arg_help=(
-                        'A protein sequence string, file, or ORFaqs '
-                        'discovered proteins directory. Additional '
-                        'information regarding specific input requirements '
-                        'is specified in relevant option descriptions.'
+                        'A protein sequence string, or protein FASTA file. '
+                        'Additional information regarding specific input '
+                        'requirements is specified in relevant option '
+                        'descriptions.'
                     ),
                     arg_type=str,
                 ),
@@ -123,17 +124,6 @@ class ORFaqsProteinQuery(ORFaqsApp):
                     arg_type=str,
                 ),
                 CliUtil.create_new_arg_descriptor(
-                    ('-l', '--load_proteins'),
-                    arg_help=(
-                        'If enabled, this option loads protein data into the '
-                        'specified workspace database. '
-                        'Specify the workspace using the (-w, --workspace) '
-                        'option, and provide protein input data using the '
-                        '(-i, --input_proteins) option.'
-                    ),
-                    action='store_true',
-                ),
-                CliUtil.create_new_arg_descriptor(
                     ('--remove_workspace'),
                     arg_help=(
                         'If enabled, the specified workspace and any '
@@ -155,20 +145,53 @@ class ORFaqsProteinQuery(ORFaqsApp):
                     default=None,
                 ),
                 CliUtil.create_new_arg_descriptor(
+                    ('-l', '--load_proteins'),
+                    arg_help=(
+                        'Loads the present protein data into the specified '
+                        'workspace database table. Load proteins into the the '
+                        'discovered proteins table using the '
+                        '(--discovered_proteins) option, or into the '
+                        'reference proteins table using the '
+                        '(--reference_proteins) option. Provide the workspace '
+                        'using the (-w, --workspace) option.'
+                    ),
+                    action='store_true',
+                    default=None,
+                ),
+                CliUtil.create_new_arg_descriptor(
                     (f'--{ORFaqsApp.launch_json_option_name()}'),
                     arg_help=(
                         'A JSON file specifying arguments and options to '
-                        "apply to the program's session. If "
-                        'arguments provided in the JSON overlap with '
-                        'arguments provided on the command line, values from '
-                        'the command line override those specified in the JSON.'
+                        'apply to the program session. If arguments provided '
+                        'in the JSON overlap with arguments provided on the '
+                        'command line, values from the command line override '
+                        'those specified in the JSON.'
                     ),
                     arg_type=str,
                 ),
             ]
 
+            mutually_exclusive_args_list = [
+                CliUtil.create_new_arg_descriptor(
+                    ('--discovered_proteins'),
+                    arg_help=(
+                        'A discovered proteins file, or directory, generated '
+                        'by ORFaqs Protein Discovery app.'
+                    ),
+                    arg_type=str,
+                ),
+                CliUtil.create_new_arg_descriptor(
+                    ('--reference_proteins'),
+                    arg_help=(
+                        'A protein file, or directory containing protein data '
+                        'in FASTA file format.'
+                    ),
+                    arg_type=str,
+                ),
+            ]
             cli_arg_parser = CliUtil.create_arg_parser(
-                arg_descriptor_list,
+                args_list,
+                mutually_exclusive_args_list=mutually_exclusive_args_list,
                 program_name=ORFaqsProteinQuery.program_name(),
                 description=(
                     'Run queries on collections of protein sequences.'
@@ -216,16 +239,25 @@ class ORFaqsProteinQuery(ORFaqsApp):
         ORFaqsProteinQueryUtils.remove_workspace(workspace)
 
     @staticmethod
-    def _load_proteins(
+    def _load_discovered_proteins(
         workspace: str,
-        input_proteins: str | pathlib.Path,
+        discovered_proteins: (str | os.PathLike),
         **kwargs,
     ):
-        if workspace is None:
-            workspace = ORFaqsProteinQuery._DEFAULT_WORKSPACE
         ORFaqsProteinQueryUtils.load_discovered_proteins(
             workspace=workspace,
-            input_path=input_proteins,
+            input_path=discovered_proteins,
+        )
+
+    @staticmethod
+    def _load_reference_proteins(
+        workspace: str,
+        reference_proteins: (str | os.PathLike),
+        **kwargs,
+    ):
+        ORFaqsProteinQueryUtils.load_reference_proteins(
+            workspace=workspace,
+            input_path=reference_proteins,
         )
 
     @staticmethod
@@ -245,8 +277,9 @@ class ORFaqsProteinQuery(ORFaqsApp):
 
     @staticmethod
     def _run(
-        output_directory: str | pathlib.Path,
+        output_directory: (str | os.PathLike),
         job_id: str = None,
+        workspace: str = None,
         load_proteins: bool = False,
         export_file_path: str = None,
         export_format: str = None,
@@ -267,6 +300,10 @@ class ORFaqsProteinQuery(ORFaqsApp):
             output_directory = output_directory.joinpath(job_id)
         DirectoryUtils.mkdir_path(output_directory)
 
+        # Set the default workspace if none is provided.
+        if workspace is None:
+            workspace = ORFaqsProteinQuery._DEFAULT_WORKSPACE
+        kwargs['workspace'] = workspace
         #######################################################################
         # Remove workspace
         if remove_workspace:
@@ -276,7 +313,10 @@ class ORFaqsProteinQuery(ORFaqsApp):
         #######################################################################
         # Load proteins...
         if load_proteins:
-            ORFaqsProteinQuery._load_proteins(**kwargs)
+            if kwargs.get('discovered_proteins') is not None:
+                ORFaqsProteinQuery._load_discovered_proteins(**kwargs)
+            elif kwargs.get('reference_proteins') is not None:
+                ORFaqsProteinQuery._load_reference_proteins(**kwargs)
 
         #######################################################################
         # Export proteins conditions...

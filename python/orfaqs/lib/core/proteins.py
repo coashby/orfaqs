@@ -2,52 +2,42 @@
 Proteins
 """
 
-from orfaqs.lib.core.aminoacids import AminoAcid
+import logging
+
+from orfaqs.lib.core.aminoacids import (
+    AminoAcid,
+    AminoAcidSequence,
+)
+
+_logger = logging.getLogger(__name__)
 
 
-class Protein:
+class Protein(AminoAcidSequence):
     """Protein"""
 
     def __init__(
         self,
-        amino_acid: AminoAcid | list[AminoAcid] = None,
-        protein_name: str = None,
+        sequence: (AminoAcid | list[AminoAcid] | str) = None,
+        name: str = None,
+        sequence_complete: bool = False,
     ):
-        if amino_acid is None:
-            amino_acid = []
-        elif isinstance(amino_acid, AminoAcid):
-            amino_acid = [amino_acid]
+        super().__init__(sequence=sequence, name=name)
 
-        self._protein_name = protein_name
-        self._amino_acid_chain = amino_acid
-        self._sequence_complete = False
-
-    def __str__(self) -> str:
-        return ''.join(
-            [amino_acid.symbol for amino_acid in self._amino_acid_chain]
-        )
-
-    @property
-    def protein_name(self):
-        return self._protein_name
-
-    @property
-    def amino_acid_chain(self) -> list[AminoAcid]:
-        return self._amino_acid_chain
+        self._sequence_complete = sequence_complete
+        if isinstance(sequence, Protein):
+            self._sequence_complete = sequence.sequence_complete
 
     @property
     def sequence_complete(self) -> bool:
         return self._sequence_complete
 
-    @property
-    def number_amino_acids(self) -> int:
-        return len(self._amino_acid_chain)
-
-    def add_amino_acid(self, amino_acid: AminoAcid):
+    def add_amino_acid(self, amino_acid: (AminoAcid | str)):
         if self._sequence_complete:
             return
+        if isinstance(amino_acid, AminoAcid):
+            amino_acid = amino_acid.symbol
 
-        self._amino_acid_chain.append(amino_acid)
+        self._sequence_str += amino_acid
 
     def end_sequence(self):
         self._sequence_complete = True

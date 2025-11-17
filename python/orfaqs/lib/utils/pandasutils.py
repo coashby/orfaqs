@@ -46,9 +46,7 @@ class PandasUtils:
             results_dataframe = pd.read_excel(file_path, index_col=False)
         else:
             message = (
-                '[ERROR] Input file type not recognized. Expected files types '
-                'are: '
-                f'{PandasUtils.available_dataframe_export_formats()}.\n'
+                '[ERROR] The input file type is not currently supported.\n'
                 '(debug) ->\n'
                 f'\tfile_path: {file_path}\n'
                 f'\tfile_type: {file_type}'
