@@ -152,8 +152,15 @@ class GenomicSequence(Sequence):
         sequence: (str | list[str] | list[NucleicAcid]),
         strand_type: StrandType = None,
         name: str = None,
+        log_errors: bool = True,
+        raise_errors: bool = True,
     ):
-        super().__init__(sequence=sequence, name=name)
+        super().__init__(
+            sequence=sequence,
+            name=name,
+            log_errors=log_errors,
+            raise_errors=raise_errors,
+        )
         self._strand_type = strand_type
 
         if isinstance(sequence, GenomicSequence):
@@ -264,20 +271,37 @@ class NucleotideUtils:
         sequence: (str | list[str] | list[NucleicAcid] | GenomicSequence),
         strand_type: StrandType = None,
         name: str = None,
+        log_errors: bool = True,
+        raise_errors: bool = True,
     ) -> GenomicSequence:
         try:
-            return DNASequence(sequence, strand_type, name)
+            return DNASequence(
+                sequence,
+                strand_type,
+                name,
+                log_errors=log_errors,
+                raise_errors=raise_errors,
+            )
         except ValueError:
             try:
-                return RNASequence(sequence, strand_type, name)
-            except ValueError as e:
-                message = (
-                    '[ERROR] The sequence could not be interpreted as '
-                    'a DNA sequence or an RNA sequence. Check the '
-                    'input for errors.'
+                return RNASequence(
+                    sequence,
+                    strand_type,
+                    name,
+                    log_errors=log_errors,
+                    raise_errors=raise_errors,
                 )
-                _logger.error(message)
-                raise ValueError(message) from e
+            except ValueError as e:
+                message = None
+                if log_errors:
+                    message = (
+                        '[ERROR] The sequence could not be interpreted as '
+                        'a DNA sequence or an RNA sequence. Check the '
+                        'input for errors.'
+                    )
+                    _logger.error(message)
+                if raise_errors:
+                    raise ValueError(message) from e
 
     @staticmethod
     def is_dna_sequence(

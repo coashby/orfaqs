@@ -6,6 +6,8 @@ common operations.
 import csv
 import io
 import logging
+import pandas as pd
+import psycopg2
 import sqlalchemy
 import typing
 
@@ -310,6 +312,31 @@ class DatabaseUtils(ABC):
         connection: sqlalchemy.Connection,
     ) -> sqlalchemy.CursorResult[any]:
         return SqlAlchemyUtils.run_query(query, connection)
+
+    @staticmethod
+    def insert_from_dataframe(
+        connection: sqlalchemy.Connection,
+        table: str,
+        dataframe: pd.DataFrame,
+        insert_method: str = typing.Literal['fail', 'replace', 'append'],
+        include_index: bool = False,
+    ):
+        try:
+            dataframe.to_sql(
+                name=table,
+                con=connection,
+                if_exists=insert_method,
+                index=include_index,
+                method=SqlAlchemyUtils.psql_insert_copy,
+            )
+        except psycopg2.errors.UniqueViolation:
+            message = (
+                '[INFO] Load failed. Duplicate data found in the current '
+                f' DataFrame object loading into table: {table} from '
+                f'database: {connection.engine.url.database}.'
+            )
+            _logger.info(message)
+            print(message)
 
 
 class PostgresDatabaseUtils(DatabaseUtils):

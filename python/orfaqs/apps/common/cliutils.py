@@ -40,13 +40,26 @@ class CliUtil:
 
     @staticmethod
     def create_arg_parser(
-        arg_descriptor_list, program_name=None, description=None, epilog=None
+        args_list: list,
+        mutually_exclusive_args_list: list = None,
+        program_name=None,
+        description=None,
+        epilog=None,
     ):
         arg_parser = ArgumentParser(
             prog=program_name, description=description, epilog=epilog
         )
-        for name_or_flags, arg_descriptor in arg_descriptor_list:
+        for name_or_flags, arg_descriptor in args_list:
             arg_parser.add_argument(*name_or_flags, **arg_descriptor)
+
+        if isinstance(mutually_exclusive_args_list, list):
+            mutually_exclusive_group = (
+                arg_parser.add_mutually_exclusive_group()
+            )
+            for name_or_flags, arg_descriptor in mutually_exclusive_args_list:
+                mutually_exclusive_group.add_argument(
+                    *name_or_flags, **arg_descriptor
+                )
 
         return arg_parser
 

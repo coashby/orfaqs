@@ -14,11 +14,12 @@ from orfaqs.lib.core.nucleotides import (
     NucleotideUtils,
 )
 from orfaqs.lib.core.sequence import Sequence
+from orfaqs.lib.utils.directoryutils import DirectoryUtils
 from orfaqs.lib.utils.jsonutils import JsonUtils
 
 _logger = logging.getLogger(__name__)
 
-_SUPPORTED_ACCESSION_NUMBER_PREFIXES: list[str] = [
+_SUPPORTED_UID_PREFIXES: list[str] = [
     'NC_',
     'NG_',
     'NM_',
@@ -30,6 +31,8 @@ _SUPPORTED_ACCESSION_NUMBER_PREFIXES: list[str] = [
     'XP_',
     'XR_',
 ]
+
+_EXPECTED_FASTA_FILE_EXTENSIONS = ['fsa', 'fasta']
 
 
 class FASTASequenceType(enum.Enum):
@@ -43,12 +46,12 @@ class FASTASequence:
 
     SEQUENCE_IDENTIFIER_DELIM = '>'
     PROTEIN_SEQUENCE_STOP_CODON_DELIM = '*'
-    HEADER_INFO_ACCESSION_NUMBER_KEY = 'accession_number'
+    HEADER_INFO_UID_KEY = 'uid'
     HEADER_INFO_SEQUENCE_DESCRIPTION = 'sequence_description'
 
     def __init__(self, header_str: str, sequence_str: str):
-        (self._accession_number, self._header_info) = (
-            FASTASequence._parse_header(header_str)
+        (self._uid, self._header_info) = FASTASequence._parse_header(
+            header_str
         )
         self._name = JsonUtils.as_json_string(self._header_info, indent=None)
         sequence_str = sequence_str.replace(
@@ -57,7 +60,9 @@ class FASTASequence:
         self._sequence = None
         try:
             self._sequence = NucleotideUtils.create_sequence(
-                sequence=sequence_str, name=self._name
+                sequence=sequence_str,
+                name=self._name,
+                log_errors=False,
             )
         except ValueError:
             try:
@@ -89,8 +94,8 @@ class FASTASequence:
         return self._header_info
 
     @property
-    def accession_number(self) -> str:
-        return self._accession_number
+    def uid(self) -> str:
+        return self._uid
 
     @property
     def name(self) -> str:
@@ -113,37 +118,37 @@ class FASTASequence:
         )
 
         # Grab the individual fields of the header
-        accession_number = None
+        uid = None
         header_info = {}
         header_fields = header_str.split(' ')
         number_header_fields = len(header_fields)
         if number_header_fields > 0:
             header_reference_field = header_fields[0]
-            for prefix in _SUPPORTED_ACCESSION_NUMBER_PREFIXES:
-                if prefix in header_reference_field:
-                    accession_number_fields = header_reference_field.split(
-                        prefix
-                    )
-                    # Remove all non-alphanumeric characters from the
-                    # accession_number.
-                    accession_number = re.sub(
-                        r'[^a-zA-Z0-9]', '', accession_number_fields[-1]
-                    )
-                    accession_number = f'{prefix}{accession_number}'
-
-            header_info[FASTASequence.HEADER_INFO_ACCESSION_NUMBER_KEY] = (
-                accession_number
-            )
+            uid = re.sub(r'[^a-zA-Z0-9]', '', header_reference_field)
+            header_info[FASTASequence.HEADER_INFO_UID_KEY] = uid
         if number_header_fields > 1:
             header_info[FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION] = (
                 ' '.join(header_fields[1:])
             )
 
-        return (accession_number, header_info)
+        return (uid, header_info)
 
 
 class FASTAUtils:
     """FASTAUtils"""
+
+    @staticmethod
+    def expected_file_extensions() -> list[str]:
+        return _EXPECTED_FASTA_FILE_EXTENSIONS
+
+    @staticmethod
+    def is_fasta_file(file_path: str | os.PathLike) -> bool:
+        file_path = DirectoryUtils.make_path_object(file_path)
+        for fasta_extension in FASTAUtils.expected_file_extensions():
+            if fasta_extension.lower() in file_path.suffix.lower():
+                return True
+
+        return False
 
     @staticmethod
     def is_fasta_header(line_str: str) -> bool:

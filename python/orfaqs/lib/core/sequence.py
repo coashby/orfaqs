@@ -13,6 +13,8 @@ class Sequence(abc.ABC):
         self,
         sequence: (str | list),
         name: str,
+        log_errors: bool = True,
+        raise_errors: bool = True,
     ):
         self._sequence_str: str = ''
         self._name = name
@@ -28,12 +30,15 @@ class Sequence(abc.ABC):
         for symbol in sequence:
             symbol = str(symbol)
             if symbol not in available_symbols:
-                message = (
-                    f'[ERROR] "{symbol}" is not a valid symbol for '
-                    f'{self.__class__.__name__} objects.'
-                )
-                _logger.error(message)
-                raise ValueError(message)
+                message = None
+                if log_errors:
+                    message = (
+                        f'[ERROR] "{symbol}" is not a valid symbol for '
+                        f'{self.__class__.__name__} objects.'
+                    )
+                    _logger.error(message)
+                if raise_errors:
+                    raise ValueError(message)
 
         self._sequence_str = sequence
 

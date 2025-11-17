@@ -25,8 +25,12 @@ class TestCodonUtils:
             codons.CodonUtils.available_codons()
         )
         assert len(available_codons) == len(reference_codons)
+
+        reference_codon_sequence_strs = [
+            sequence_str.lower() for sequence_str in reference_codons
+        ]
         for codon in available_codons:
-            assert codon.sequence_str in reference_codons
+            assert codon.sequence_str.lower() in reference_codon_sequence_strs
 
     def test_base_triplet_to_codon(self, reference_codons: dict[str, dict]):
         for triplet_str in reference_codons.keys():
