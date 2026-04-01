@@ -4,11 +4,17 @@ Ribosomes
 
 import enum
 import logging
+import numpy as np
 
 import orfaqs.lib.core.aminoacids as _aminoacids
 import orfaqs.lib.core.codons as _codons
 
-from enum import Enum
+from collections.abc import Iterator
+
+from orfaqs.lib.utils.computeutils import (
+    ComputeAccelerator,
+    ComputeUtils,
+)
 
 from orfaqs.lib.core.aminoacids import AminoAcid
 from orfaqs.lib.core.codons import Codon, CodonUtils
@@ -18,7 +24,7 @@ from orfaqs.lib.core.proteins import Protein
 _logger = logging.getLogger(__name__)
 
 
-class _ProfilerFunctionName(Enum):
+class _ProfilerFunctionName(enum.Enum):
     RIBOSOME_TRANSLATE_RNA = enum.auto()
     RIBOSOME_UTILS_PROTEIN_DISCOVERY_ALL = enum.auto()
     RIBOSOME_UTILS_PROTEIN_DISCOVERY_FRAME = enum.auto()
@@ -94,7 +100,7 @@ _TRIPLET_AMINO_ACID_LUT = {
 }
 
 
-class RNAReadingFrame(Enum):
+class RNAReadingFrame(enum.Enum):
     FIRST_FRAME = 1
     SECOND_FRAME = 2
     THIRD_FRAME = 3
@@ -162,6 +168,16 @@ class RibosomeUtils:
     """RibosomeUtils"""
 
     @staticmethod
+    def _compute_accelerator() -> ComputeAccelerator:
+        compute_accelerator = ComputeUtils.get_default_compute_accelerator()
+        if ComputeUtils.is_metal_compute_accelerator(compute_accelerator):
+            compute_accelerator.load_kernel(
+                'orfaqs/lib/core/kernels/metal/ribosomes.metal'
+            )
+
+        return compute_accelerator
+
+    @staticmethod
     def start_codons() -> list[Codon]:
         return [_codons.AUG]
 
@@ -210,12 +226,76 @@ class RibosomeUtils:
         return (start_index, stop_index)
 
     @staticmethod
-    def find_start_codons(
-        rna_sequence: str | RNASequence, start_codons: list[Codon] = None
+    def _find_start_codons_gpu(
+        rna_sequence: str | RNASequence,
+        start_codons: list[Codon] = None,
     ) -> list[int]:
-        if start_codons is None:
-            start_codons = RibosomeUtils.start_codons()
+        kernel_function_name = 'find_start_codons'
+        rna_sequence_str = rna_sequence
+        if isinstance(rna_sequence, RNASequence):
+            rna_sequence_str = rna_sequence.sequence_str
 
+        start_condon_packed_str: str = ''
+        for codon in start_codons:
+            start_condon_packed_str += codon.sequence_str
+
+        # Pad the codon list with dummy values
+        # to ensure all codons are processed.
+        base_padding_count = (
+            3 - len(rna_sequence_str) % CodonUtils.number_bases_per_codon()
+        ) % 3
+        rna_sequence_str += 'x' * base_padding_count
+        # start_codon_indices: list[bool] = [False] *
+        number_codons = int(
+            len(rna_sequence_str) / CodonUtils.number_bases_per_codon()
+        )
+        number_start_codons_buffer = [len(start_codons)]
+        start_codon_indices: list[bool] = [False] * number_codons
+        results_buffer_index = 3
+        rna_sequence_uint8_list = list(rna_sequence_str.encode())
+
+        #######################################################################
+        # Create a new ComputeAccelerator object to process the RNA sequence.
+        compute_accelerator = RibosomeUtils._compute_accelerator()
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=0,
+            arg=rna_sequence_uint8_list,
+            dtype=np.uint8,
+        )
+        start_condon_uint8_list = list(start_condon_packed_str.encode())
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=1,
+            arg=start_condon_uint8_list,
+            dtype=np.uint8,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=2,
+            arg=number_start_codons_buffer,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            results_buffer_index,
+            start_codon_indices,
+            dtype=np.bool,
+        )
+        compute_accelerator.execute()
+        start_codon_indices = compute_accelerator.get_buffer(
+            buffer_index=results_buffer_index,
+            dtype=np.bool,
+        )
+
+        start_codon_indices = np.where(start_codon_indices)[0].tolist()
+        return start_codon_indices
+
+    @staticmethod
+    def _find_start_codons(
+        rna_sequence: str | RNASequence,
+        start_codons: list[Codon] = None,
+    ) -> list[int]:
         start_codon_indices: list[int] = []
         codon_index = 0
         for codon in RibosomeUtils.read_codons(rna_sequence):
@@ -227,7 +307,27 @@ class RibosomeUtils:
         return start_codon_indices
 
     @staticmethod
-    def read_triplets(rna_sequence: str | RNASequence):
+    def find_start_codons(
+        rna_sequence: str | RNASequence,
+        start_codons: list[Codon] = None,
+        use_gpu: bool = True,
+    ) -> list[int]:
+        if start_codons is None:
+            start_codons = RibosomeUtils.start_codons()
+
+        if use_gpu:
+            return RibosomeUtils._find_start_codons_gpu(
+                rna_sequence,
+                start_codons,
+            )
+
+        return RibosomeUtils._find_start_codons(
+            rna_sequence,
+            start_codons,
+        )
+
+    @staticmethod
+    def read_triplets(rna_sequence: str | RNASequence) -> Iterator[str]:
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
         i = 0
@@ -241,7 +341,10 @@ class RibosomeUtils:
             i += codon_step
 
     @staticmethod
-    def read_codons(rna_sequence: str | RNASequence):
+    def read_codons(rna_sequence: str | RNASequence) -> Iterator[Codon]:
+        if rna_sequence is None or rna_sequence == '':
+            return None
+
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
         i = 0

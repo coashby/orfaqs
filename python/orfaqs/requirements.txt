@@ -6,9 +6,11 @@ pandas
 pre-commit
 psycopg2-binary
 pyinstaller
+pyobjc
 pytest
 pytest-cov
 pytest-datadir
+pytest-order
 ruff
 setuptools
 sqlalchemy
