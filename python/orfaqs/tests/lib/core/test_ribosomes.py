@@ -1,5 +1,7 @@
 import pytest
 
+from collections.abc import Iterator
+
 import orfaqs.lib.core.codons as _codons
 
 from orfaqs.lib.core.ribosomes import Ribosome, RibosomeUtils, RNAReadingFrame
@@ -197,69 +199,139 @@ class TestRibosomeUtils:
         assert all(isinstance(idx, int) for idx in start_stop_indices)
 
     @staticmethod
-    def test_find_start_codons_with_string_sequence(
-        default_rna_sequence_str: str,
-    ):
-        """Test find_start_codons with string RNA sequence"""
-        start_codon_indices = RibosomeUtils.find_start_codons(
-            default_rna_sequence_str
+    def _create_rna_sequence_with_start_codons() -> tuple[
+        RNASequence, list[int]
+    ]:
+        start_codon_indices = [
+            index * Codon.number_bases() for index in [0, 3, 5]
+        ]
+        start_codon_indices = sorted(start_codon_indices)
+        rna_sequence_length = (
+            start_codon_indices[-1] + 2 * Codon.number_bases()
         )
+        index = 0
+        rna_sequence_str = ''
+        while index < rna_sequence_length:
+            if index in start_codon_indices:
+                rna_sequence_str += RibosomeUtils.start_codons()[
+                    0
+                ].sequence_str
+            else:
+                rna_sequence_str += 'UUU'
+            index += Codon.number_bases()
+        return (RNASequence(rna_sequence_str), start_codon_indices)
+
+    @staticmethod
+    def _validate_found_start_codons(
+        start_codon_indices: list[int],
+        expected_start_codon_indices: list[int],
+    ):
         assert isinstance(start_codon_indices, list)
         assert all(isinstance(idx, int) for idx in start_codon_indices)
+        assert start_codon_indices == expected_start_codon_indices
 
     @staticmethod
-    def test_find_start_codons_with_rna_sequence_object(
-        default_rna_sequence: RNASequence,
-    ):
-        """Test find_start_codons with RNASequence object"""
+    def test_find_start_codons_with_string_sequence():
+        """Test find_start_codons with string RNA sequence"""
+
+        (
+            rna_sequence,
+            expected_start_codon_indices,
+        ) = TestRibosomeUtils._create_rna_sequence_with_start_codons()
         start_codon_indices = RibosomeUtils.find_start_codons(
-            default_rna_sequence
+            rna_sequence.sequence_str
         )
-        assert isinstance(start_codon_indices, list)
+        TestRibosomeUtils._validate_found_start_codons(
+            start_codon_indices,
+            expected_start_codon_indices,
+        )
 
     @staticmethod
-    def test_find_start_codons_with_gpu(
-        default_rna_sequence: RNASequence,
-    ):
+    def test_find_start_codons_with_rna_sequence_object():
+        """Test find_start_codons with RNASequence object"""
+
+        (
+            rna_sequence,
+            expected_start_codon_indices,
+        ) = TestRibosomeUtils._create_rna_sequence_with_start_codons()
+        start_codon_indices = RibosomeUtils.find_start_codons(rna_sequence)
+        TestRibosomeUtils._validate_found_start_codons(
+            start_codon_indices,
+            expected_start_codon_indices,
+        )
+
+    @staticmethod
+    def test_find_start_codons_with_gpu():
         """Test find_start_codons with GPU acceleration enabled"""
 
+        (
+            rna_sequence,
+            expected_start_codon_indices,
+        ) = TestRibosomeUtils._create_rna_sequence_with_start_codons()
         start_codon_indices = RibosomeUtils.find_start_codons(
-            default_rna_sequence, use_gpu=True
+            rna_sequence,
+            use_gpu=True,
         )
-        assert isinstance(start_codon_indices, list)
+        TestRibosomeUtils._validate_found_start_codons(
+            start_codon_indices,
+            expected_start_codon_indices,
+        )
 
     @staticmethod
-    def test_find_start_codons_without_gpu(
-        default_rna_sequence: RNASequence,
-    ):
+    def test_find_start_codons_without_gpu():
         """Test find_start_codons with GPU acceleration disabled"""
 
+        (
+            rna_sequence,
+            expected_start_codon_indices,
+        ) = TestRibosomeUtils._create_rna_sequence_with_start_codons()
         start_codon_indices = RibosomeUtils.find_start_codons(
-            default_rna_sequence, use_gpu=False
+            rna_sequence,
+            use_gpu=False,
         )
-        assert isinstance(start_codon_indices, list)
+        TestRibosomeUtils._validate_found_start_codons(
+            start_codon_indices,
+            expected_start_codon_indices,
+        )
 
     @staticmethod
-    def test_find_start_codons_custom_start_codons(
-        default_rna_sequence: RNASequence,
-    ):
+    def test_find_start_codons_custom_start_codons():
         """Test find_start_codons with custom start codons"""
 
         custom_codons = [_codons.AUG]
+
+        (
+            rna_sequence,
+            expected_start_codon_indices,
+        ) = TestRibosomeUtils._create_rna_sequence_with_start_codons()
         start_codon_indices = RibosomeUtils.find_start_codons(
-            default_rna_sequence, start_codons=custom_codons
+            rna_sequence,
+            start_codons=custom_codons,
         )
-        assert isinstance(start_codon_indices, list)
+        TestRibosomeUtils._validate_found_start_codons(
+            start_codon_indices,
+            expected_start_codon_indices,
+        )
+
+    @staticmethod
+    def _validate_read_triplets(triplet_iterator: Iterator[str]):
+        assert hasattr(triplet_iterator, '__iter__')
+        triplets = list(triplet_iterator)
+        assert all(
+            (isinstance(triplet, str) and len(triplet) == Codon.number_bases())
+            for triplet in triplets
+        )
 
     @staticmethod
     def test_read_triplets_with_string_sequence(
-        default_rna_sequence: RNASequence,
+        default_rna_sequence_str: RNASequence,
     ):
         """Test read_triplets returns iterator of strings"""
 
-        triplet_iterator = RibosomeUtils.read_triplets(default_rna_sequence)
-        triplets = list(triplet_iterator)
-        assert all(isinstance(triplet, str) for triplet in triplets)
+        triplet_iterator = RibosomeUtils.read_triplets(
+            default_rna_sequence_str
+        )
+        TestRibosomeUtils._validate_read_triplets(triplet_iterator)
 
     @staticmethod
     def test_read_triplets_with_rna_sequence_object(
@@ -268,7 +340,13 @@ class TestRibosomeUtils:
         """Test read_triplets with RNASequence object"""
 
         triplet_iterator = RibosomeUtils.read_triplets(default_rna_sequence)
-        assert hasattr(triplet_iterator, '__iter__')
+        TestRibosomeUtils._validate_read_triplets(triplet_iterator)
+
+    @staticmethod
+    def _validate_read_codons(codon_iterator: Iterator[Codon]):
+        assert hasattr(codon_iterator, '__iter__')
+        triplets = list(codon_iterator)
+        assert all(isinstance(triplet, Codon) for triplet in triplets)
 
     @staticmethod
     def test_read_codons_with_string_sequence(
@@ -277,8 +355,7 @@ class TestRibosomeUtils:
         """Test read_codons returns iterator of Codons"""
 
         codons_iterator = RibosomeUtils.read_codons(default_rna_sequence_str)
-        codons = list(codons_iterator)
-        assert all(isinstance(codon, Codon) for codon in codons)
+        TestRibosomeUtils._validate_read_codons(codons_iterator)
 
     @staticmethod
     def test_read_codons_with_rna_sequence_object(
@@ -287,4 +364,4 @@ class TestRibosomeUtils:
         """Test read_codons with RNASequence object"""
 
         codons_iterator = RibosomeUtils.read_codons(default_rna_sequence)
-        assert hasattr(codons_iterator, '__iter__')
+        TestRibosomeUtils._validate_read_codons(codons_iterator)

@@ -288,7 +288,10 @@ class RibosomeUtils:
             dtype=np.bool,
         )
 
-        start_codon_indices = np.where(start_codon_indices)[0].tolist()
+        start_codon_indices = [
+            index * Codon.number_bases()
+            for index in np.where(start_codon_indices)[0].tolist()
+        ]
         return start_codon_indices
 
     @staticmethod
@@ -312,6 +315,24 @@ class RibosomeUtils:
         start_codons: list[Codon] = None,
         use_gpu: bool = True,
     ) -> list[int]:
+        """
+        Returns a sorted list of base indices from the input sequence, in
+        ascending order, indicating the position of start codons found within
+        the sequence.
+        ----------
+        Arguments:
+        ----------
+        rna_sequence (str | RNASequence):
+            The input RNA sequence to inspect for start codons.
+
+        start_codons (list[Codon]):
+            (Optional) A list of codons known to be, or labeled as, start
+            codons.
+
+        use_gpu (bool):
+            (Optional) If True, then the GPU is used for finding the start
+            codon indices. Otherwise, the CPU is used.
+        """
         if start_codons is None:
             start_codons = RibosomeUtils.start_codons()
 
