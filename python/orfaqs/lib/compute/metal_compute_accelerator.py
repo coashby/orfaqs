@@ -243,5 +243,7 @@ class MetalComputeAccelerator(ComputeAccelerator):
             output_contents = output_contents.contents().as_buffer(
                 output_contents.length()
             )
-            output_contents = np.frombuffer(output_contents, dtype=dtype)
+            output_contents = np.frombuffer(
+                output_contents, dtype=dtype
+            ).tolist()
         return output_contents
