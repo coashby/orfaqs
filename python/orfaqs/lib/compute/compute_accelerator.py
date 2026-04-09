@@ -160,7 +160,7 @@ class ComputeAccelerator(abc.ABC):
         pass
 
     @staticmethod
-    def arg_index_generator(number_args: int = None) -> typing.Generator[int]:
+    def arg_index_generator(number_args: int = None) -> typing.Generator:
         if number_args is None:
             number_args = math.inf
         arg_index = 0
