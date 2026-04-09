@@ -90,7 +90,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                         'If enabled, the application attempts to use available '
                         'GPU resources for processing. If supported GPU '
                         'resources cannot be found, processing defaults to the '
-                        'CPU. '
+                        'CPU.'
                     ),
                     action='store_true',
                 ),
