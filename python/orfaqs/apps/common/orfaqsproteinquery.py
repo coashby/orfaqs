@@ -9,10 +9,10 @@ import pathlib
 import typing
 
 from orfaqs.apps.common.orfaqsproteindiscovery import (
-    ORFaqsProteinDiscoveryUtils,
     RNAReadingFrame,
 )
 from orfaqs.apps.common.orfaqsrecords import (
+    ORFaqsDiscoveredProteinRecord,
     ORFaqsDiscoveredProteinRecordKeys,
     ORFaqsProteinRecord,
     ORFaqsRecordUtils,
@@ -424,22 +424,21 @@ class ORFaqsProteinQueryUtils:
                 input_path, recursive=True
             )
 
-        discovery_file_name = ORFaqsProteinDiscoveryUtils.exported_file_name()
-        discovery_files: list[os.PathLike] = []
+        discovered_proteins_files: list[os.PathLike] = []
         for file_path in input_file_paths:
-            # Check that contents are indeed, formatted results from the
-            # ORFaqsProteinDiscoveryUtils class.
-            file_type = file_path.suffix
-            expected_file_name_ending = f'{discovery_file_name}{file_type}'
-            if (
-                (expected_file_name_ending in file_path.name)
-                and ORFaqsProteinDiscoveryUtils.is_valid_discovered_proteins_file(
+            # Validate the file paths...
+            try:
+                proteins_dataframe = PandasUtils.read_file_as_dataframe(
                     file_path
                 )
-            ):
-                discovery_files.append(file_path)
+                for record_key in ORFaqsDiscoveredProteinRecord.keys():
+                    if record_key not in proteins_dataframe.columns:
+                        continue
+            except ValueError:
+                continue
+            discovered_proteins_files.append(file_path)
 
-        if len(discovery_files) == 0:
+        if len(discovered_proteins_files) == 0:
             message = (
                 '[INFO] No protein discovery files were found.\n'
                 '(debug) ->\n'
@@ -462,7 +461,7 @@ class ORFaqsProteinQueryUtils:
 
         # 3. Load all the result files into memory and write them to the
         # database table.
-        for file_path in discovery_files:
+        for file_path in discovered_proteins_files:
             proteins_dataframe = PandasUtils.read_file_as_dataframe(file_path)
             ORFaqsProteinQueryUtils._prepare_dataframe_for_table(
                 proteins_dataframe

@@ -8,7 +8,7 @@ import pathlib
 from orfaqs.apps.common.cliutils import CliUtil
 from orfaqs.apps.common.orfaqsapp import ORFaqsApp
 from orfaqs.apps.common.orfaqsproteindiscovery import (
-    ORFaqsProteinDiscoveryUtils,
+    ORFaqsProteinDiscoveryApi,
 )
 
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
@@ -78,9 +78,9 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     arg_help=(
                         'Defines the exported format of the resulting data. '
                         'The default format is '
-                        f'{ORFaqsProteinDiscoveryUtils.default_export_format()}'
+                        f'{ORFaqsProteinDiscoveryApi.default_export_format()}'
                         'Supported formats are: '
-                        f'{ORFaqsProteinDiscoveryUtils.available_export_formats()}.'
+                        f'{ORFaqsProteinDiscoveryApi.available_export_formats()}.'
                     ),
                     arg_type=str,
                 ),
@@ -152,7 +152,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
 
         if DirectoryUtils.is_file(input_sequence):
             # Try processing as a FASTA file
-            ORFaqsProteinDiscoveryUtils.process_fasta_file(
+            ORFaqsProteinDiscoveryApi.process_fasta_file(
                 fasta_file_path=input_sequence,
                 include_reverse_complement=include_reverse_complement,
                 export_format=export_format,
@@ -160,7 +160,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
             )
         else:
             # Try processing as an sequence string.
-            ORFaqsProteinDiscoveryUtils.process_genomic_sequence(
+            ORFaqsProteinDiscoveryApi.process_genomic_sequence(
                 genomic_sequence=input_sequence,
                 uid=uid,
                 include_reverse_complement=include_reverse_complement,
