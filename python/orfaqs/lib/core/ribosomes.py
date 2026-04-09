@@ -367,7 +367,7 @@ class RibosomeUtils:
         if start_codons is None:
             start_codons = RibosomeUtils.start_codons()
 
-        if use_gpu:
+        if ComputeUtils.compute_accelerator_available() and use_gpu:
             return RibosomeUtils._find_codons_gpu(
                 rna_sequence,
                 start_codons,
@@ -406,7 +406,7 @@ class RibosomeUtils:
         if stop_codons is None:
             stop_codons = RibosomeUtils.stop_codons()
 
-        if use_gpu:
+        if ComputeUtils.compute_accelerator_available() and use_gpu:
             return RibosomeUtils._find_codons_gpu(
                 rna_sequence,
                 stop_codons,
@@ -785,7 +785,7 @@ class RibosomeUtils:
             use_gpu=use_gpu,
         )
 
-        if use_gpu:
+        if ComputeUtils.compute_accelerator_available() and use_gpu:
             return RibosomeUtils._translate_all_orfs_gpu(
                 rna_sequence=rna_sequence,
                 start_codon_indices=start_codon_indices,

@@ -19,3 +19,10 @@ class ComputeUtils:
         compute_accelerator: ComputeAccelerator,
     ) -> bool:
         return isinstance(compute_accelerator, MetalComputeAccelerator)
+
+    @staticmethod
+    def compute_accelerator_available() -> bool:
+        return not isinstance(
+            ComputeUtils.get_default_compute_accelerator(),
+            ComputeAccelerator,
+        )

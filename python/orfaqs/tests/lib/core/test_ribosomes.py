@@ -13,6 +13,8 @@ from orfaqs.lib.core.aminoacids import AminoAcid
 from orfaqs.lib.core.nucleotides import RNASequence
 from orfaqs.lib.core.proteins import Protein
 
+from orfaqs.tests._testutils import accelerators
+
 
 def _read_rna_sequence_txt_file(
     rna_sequence_file_path: str | pathlib.Path,
@@ -421,6 +423,7 @@ class TestRibosomeUtils:
         )
 
     @staticmethod
+    @accelerators
     def test_find_start_codons_with_gpu_enabled(
         sample_rna_sequence_short: RNASequence,
         sample_rna_sequence_short_expected_start_codon_indices: list[int],
@@ -453,6 +456,7 @@ class TestRibosomeUtils:
         )
 
     @staticmethod
+    @accelerators
     def test_find_start_codons_with_gpu_enabled_long_sequence(
         sample_rna_sequence_long: RNASequence,
         sample_rna_sequence_long_expected_start_codon_indices: list[int],
@@ -516,6 +520,7 @@ class TestRibosomeUtils:
         )
 
     @staticmethod
+    @accelerators
     def test_find_stop_codons_with_gpu_enabled(
         sample_rna_sequence_short: RNASequence,
         sample_rna_sequence_short_expected_stop_codon_indices: list[int],
@@ -548,6 +553,7 @@ class TestRibosomeUtils:
         )
 
     @staticmethod
+    @accelerators
     def test_find_stop_codons_with_gpu_enabled_long_sequence(
         sample_rna_sequence_long: RNASequence,
         sample_rna_sequence_long_expected_stop_codon_indices: list[int],
@@ -635,6 +641,7 @@ class TestRibosomeUtils:
         )
 
     @staticmethod
+    @accelerators
     def test_translate_all_orfs_with_gpu_enabled(
         sample_rna_sequence_short: RNASequence,
         sample_rna_sequence_short_expected_orf_proteins: dict[int, Protein],
@@ -665,6 +672,7 @@ class TestRibosomeUtils:
         )
 
     @staticmethod
+    @accelerators
     def test_translate_all_orfs_with_gpu_enabled_long_sequence(
         sample_rna_sequence_long: RNASequence,
         sample_rna_sequence_long_expected_orf_proteins: dict[int, Protein],
