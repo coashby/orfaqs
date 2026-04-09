@@ -267,43 +267,45 @@ class RibosomeUtils:
 
         #######################################################################
         # Create a new ComputeAccelerator object to process the RNA sequence.
+        arg_index = ComputeAccelerator.arg_index_generator()
         compute_accelerator = RibosomeUtils._compute_accelerator()
         data_stride = compute_accelerator.calculate_data_stride(number_codons)
         kernel_function_name = 'find_codons'
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=0,
+            arg_index=next(arg_index),
             arg=rna_sequence_buffer,
             dtype=np.uint8,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=1,
+            arg_index=next(arg_index),
             arg=number_codons,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=2,
+            arg_index=next(arg_index),
             arg=data_stride,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=3,
+            arg_index=next(arg_index),
             arg=reference_codons_buffer,
             dtype=np.uint8,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=4,
+            arg_index=next(arg_index),
             arg=number_reference_codons,
             dtype=np.uint32,
         )
+        results_buffer_index = next(arg_index)
         compute_accelerator.set_arg(
             kernel_function_name,
-            results_buffer_index,
-            found_codon_indices,
+            arg_index=results_buffer_index,
+            arg=found_codon_indices,
             dtype=np.bool,
         )
         compute_accelerator.execute()
@@ -458,7 +460,7 @@ class RibosomeUtils:
         orf_lengths: list[int] = [0] * number_start_codons
         #######################################################################
         # Create a new ComputeAccelerator object to process the indices.
-        results_buffer_index = 5
+        arg_index = ComputeAccelerator.arg_index_generator()
         compute_accelerator = RibosomeUtils._compute_accelerator()
         data_stride = compute_accelerator.calculate_data_stride(
             number_start_codons
@@ -466,34 +468,35 @@ class RibosomeUtils:
         kernel_function_name = 'all_orf_lengths'
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=0,
+            arg_index=next(arg_index),
             arg=start_codon_indices,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=1,
+            arg_index=next(arg_index),
             arg=number_start_codons,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=2,
+            arg_index=next(arg_index),
             arg=stop_codon_indices,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=3,
+            arg_index=next(arg_index),
             arg=number_stop_codons,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=4,
+            arg_index=next(arg_index),
             arg=data_stride,
             dtype=np.uint32,
         )
+        results_buffer_index = next(arg_index)
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=results_buffer_index,
@@ -528,7 +531,7 @@ class RibosomeUtils:
         #######################################################################
         # Create a new ComputeAccelerator object to process the
         # amino acid sequence.
-        results_buffer_index = 3
+        arg_index = ComputeAccelerator.arg_index_generator()
         compute_accelerator = RibosomeUtils._compute_accelerator()
         # Use the largest data dimension available to calculate the
         # data stride.
@@ -536,22 +539,23 @@ class RibosomeUtils:
         kernel_function_name = 'rna_to_amino_acid_sequence'
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=0,
+            arg_index=next(arg_index),
             arg=rna_sequence_buffer,
             dtype=np.uint8,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=1,
+            arg_index=next(arg_index),
             arg=number_codons,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=2,
+            arg_index=next(arg_index),
             arg=data_stride,
             dtype=np.uint32,
         )
+        results_buffer_index = next(arg_index)
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=results_buffer_index,
@@ -606,7 +610,7 @@ class RibosomeUtils:
         #######################################################################
         # Create a new ComputeAccelerator object to process the
         # amino acid sequence.
-        results_buffer_index = 5
+        arg_index = ComputeAccelerator.arg_index_generator()
         compute_accelerator = RibosomeUtils._compute_accelerator()
         # Use the largest data dimension available to calculate the
         # data stride.
@@ -616,34 +620,35 @@ class RibosomeUtils:
         kernel_function_name = 'translate_all_orfs'
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=0,
+            arg_index=next(arg_index),
             arg=amino_acid_sequence_buffer,
             dtype=np.uint8,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=1,
+            arg_index=next(arg_index),
             arg=start_codon_indices,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=2,
+            arg_index=next(arg_index),
             arg=orf_lengths,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=3,
+            arg_index=next(arg_index),
             arg=number_start_codons,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
-            arg_index=4,
+            arg_index=next(arg_index),
             arg=data_stride,
             dtype=np.uint32,
         )
+        results_buffer_index = next(arg_index)
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=results_buffer_index,

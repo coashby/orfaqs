@@ -1,6 +1,8 @@
 import abc
 import logging
+import math
 import os
+import typing
 
 from numpy.typing import ArrayLike
 
@@ -144,8 +146,7 @@ class ComputeAccelerator(abc.ABC):
     ):
         pass
 
-    staticmethod
-
+    @staticmethod
     @abc.abstractmethod
     def calculate_data_stride(data_length: int) -> int:
         pass
@@ -157,3 +158,12 @@ class ComputeAccelerator(abc.ABC):
     @abc.abstractmethod
     def get_buffer(self, **kwargs) -> ArrayLike:
         pass
+
+    @staticmethod
+    def arg_index_generator(number_args: int = None) -> typing.Generator[int]:
+        if number_args is None:
+            number_args = math.inf
+        arg_index = 0
+        while arg_index < number_args:
+            yield arg_index
+            arg_index += 1
