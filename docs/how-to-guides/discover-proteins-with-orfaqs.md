@@ -133,24 +133,10 @@ for the corresponding sequence.
 `<OUTPUT_DIRECTORY>/<JOB_ID>/.orfaqs-apps/orfaqs-protein-discovery`.
 
 ### Output Files
-Outputs are presented in two ways:
-1. By reading frame
-1. As a complete set of results (data from all reading frames included)
-
-#### Outputs by Reading Frame
-Each reading frame specific output file name is formatted as:
-`discovered-proteins-reading-frame-<READING_FRAME>.<EXPORT_EXTENSION>` where:
-- `<READING_FRAME>`is the index 1, 2, or 3, corresponding to the reading
-frame used when the protein was found, and
-- `<EXPORT_EXTENSION>` corresponds to the extension used by the export format
-option selected (`csv`, `json`, or `xlsx`).
-
-If no proteins were found within a particular reading frame, then no output
-data are exported for that reading frame.
-
 #### All Discovered Proteins Outputs
 Results for all the proteins discoverd for a given sequence are formatted as:
-`discovered-proteins.<EXPORT_EXTENSION>` where:
+`<UID>-discovered-proteins.<EXPORT_EXTENSION>` where:
+- `<UID>` if provided, it is the ID associated with the particular sequence.
 - `<EXPORT_EXTENSION>` corresponds to the extension used by the export option
 selected (`csv`, `json`, or `xlsx`).
 
