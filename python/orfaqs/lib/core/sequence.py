@@ -56,6 +56,14 @@ class Sequence(abc.ABC):
     def __len__(self) -> int:
         return len(self._sequence_str)
 
+    def __eq__(self, rhs: any):
+        rhs_sequence_str: str = None
+        if isinstance(rhs, Sequence):
+            rhs_sequence_str = rhs._sequence_str
+        elif isinstance(rhs, str):
+            rhs_sequence_str = rhs
+        return self._sequence_str == rhs_sequence_str
+
     @property
     def sequence_str(self) -> str:
         return self._sequence_str

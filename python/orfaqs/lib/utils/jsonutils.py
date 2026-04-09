@@ -1,7 +1,3 @@
-"""
-JSON Utils
-"""
-
 import enum
 import json
 import logging
@@ -18,8 +14,6 @@ _JSON_FILE_EXTENSION = '.json'
 
 
 class JsonUtils:
-    """JsonUtils"""
-
     @staticmethod
     def json_file_extension():
         return _JSON_FILE_EXTENSION
@@ -29,7 +23,7 @@ class JsonUtils:
         return _JSON_DEFAULT_INDENT
 
     @staticmethod
-    def make_writable(value):
+    def make_writable(value: any) -> any:
         if isinstance(value, (str, int, float)):
             return value
         elif isinstance(value, bytes):
@@ -39,6 +33,7 @@ class JsonUtils:
         elif isinstance(value, dict):
             writable_object = {}
             for key, sub_value in value.items():
+                key = JsonUtils.make_writable(key)
                 writable_object[key] = JsonUtils.make_writable(sub_value)
             return writable_object
         elif isinstance(value, list):
@@ -60,18 +55,27 @@ class JsonUtils:
         return value
 
     @staticmethod
+    def read_json_str(json_str: str, raise_exceptions: bool = True) -> any:
+        json_contents = None
+        try:
+            json_contents = json.loads(json_str)
+
+        except JSONDecodeError as error:
+            message = f'[ERROR: JSONDecodeError] {error}'
+            _logger.error(message)
+
+            if raise_exceptions:
+                raise error
+
+        return json_contents
+
+    @staticmethod
     def read_json(
         json_input: str | os.PathLike, raise_exceptions: bool = True
-    ):
+    ) -> any:
         json_contents = None
-        json_syntax_chars = '{}[],:'
-        content_is_json_file: bool = True
-        for syntax_char in json_syntax_chars:
-            if syntax_char in json_input:
-                content_is_json_file = False
-                break
 
-        if content_is_json_file:
+        if DirectoryUtils.is_file(json_input):
             try:
                 with open(json_input, 'r', encoding='utf-8') as i_file:
                     json_contents = json.load(i_file)
@@ -86,25 +90,17 @@ class JsonUtils:
                     raise error
             except JSONDecodeError as error:
                 message = (
-                    '[ERROR: JSONDecodeError] '
+                    f'[ERROR: JSONDecodeError] {error}'
                     f'An exception occurred while reading from: "{json_input}"'
                 )
-                _logger.info(message)
-                _logger.error(error)
-
-                if raise_exceptions:
-                    raise error
-
-        else:
-            try:
-                json_contents = json.loads(json_input)
-
-            except JSONDecodeError as error:
-                message = f'[ERROR: JSONDecodeError] {error}'
                 _logger.error(message)
 
                 if raise_exceptions:
                     raise error
+        else:
+            json_contents = JsonUtils.read_json_str(
+                json_input, raise_exceptions
+            )
 
         return json_contents
 
@@ -114,7 +110,7 @@ class JsonUtils:
             file_path = DirectoryUtils.make_path_object(file_path_str)
             DirectoryUtils.mkdir_path(file_path.parent)
             with open(file_path_str, mode, encoding='utf-8') as o_file:
-                o_file.write(json.dumps(content, indent=indent))
+                o_file.write(JsonUtils.as_json_string(content, indent))
         except IOError as error:
             message = (
                 f'An exception occurred while reading from: "{file_path_str}"'
@@ -130,4 +126,12 @@ class JsonUtils:
 
     @staticmethod
     def as_json_string(content, indent=_JSON_DEFAULT_INDENT):
-        return json.dumps(content, indent=indent)
+        json_str = None
+        try:
+            json_str = json.dumps(content, indent=indent)
+        except TypeError:
+            json_str = json.dumps(
+                JsonUtils.make_writable(content), indent=indent
+            )
+
+        return json_str

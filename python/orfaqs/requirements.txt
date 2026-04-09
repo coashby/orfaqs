@@ -6,9 +6,11 @@ pandas
 pre-commit
 psycopg2-binary
 pyinstaller
+pyobjc; sys_platform == 'darwin'
 pytest
 pytest-cov
 pytest-datadir
+pytest-order
 ruff
 setuptools
 sqlalchemy
