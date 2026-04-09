@@ -85,6 +85,16 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                     arg_type=str,
                 ),
                 CliUtil.create_new_arg_descriptor(
+                    ('--use_gpu'),
+                    arg_help=(
+                        'If enabled, the application attempts to use available '
+                        'GPU resources for processing. If supported GPU '
+                        'resources cannot be found, processing defaults to the '
+                        'CPU. '
+                    ),
+                    action='store_true',
+                ),
+                CliUtil.create_new_arg_descriptor(
                     (f'--{ORFaqsApp.launch_json_option_name()}'),
                     arg_help=(
                         'A JSON file specifying arguments and options to '
@@ -133,6 +143,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
         output_directory: str | pathlib.Path = None,
         job_id: str = None,
         export_format: str = None,
+        use_gpu: bool = False,
         **kwargs,
     ):
         #######################################################################
@@ -157,6 +168,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                 include_reverse_complement=include_reverse_complement,
                 export_format=export_format,
                 output_directory=output_directory,
+                use_gpu=use_gpu,
             )
         else:
             # Try processing as an sequence string.
@@ -166,6 +178,7 @@ class ORFaqsProteinDiscovery(ORFaqsApp):
                 include_reverse_complement=include_reverse_complement,
                 export_format=export_format,
                 output_directory=output_directory,
+                use_gpu=use_gpu,
             )
 
 

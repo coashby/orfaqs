@@ -11,7 +11,7 @@ from enum import Enum
 
 from orfaqs.apps.common.cliutils import CliUtil
 from orfaqs.apps.common.orfaqsapp import ORFaqsApp
-from orfaqs.apps.common.orfaqsproteinquery import ORFaqsProteinQueryUtils
+from orfaqs.apps.common.orfaqsproteinquery import ORFaqsProteinQueryApi
 
 
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
@@ -117,9 +117,9 @@ class ORFaqsProteinQuery(ORFaqsApp):
                     arg_help=(
                         'Defines the exported format of the resulting data. '
                         'The default format is '
-                        f'{ORFaqsProteinQueryUtils.default_export_format()}'
+                        f'{ORFaqsProteinQueryApi.default_export_format()}'
                         'Supported formats are: '
-                        f'{ORFaqsProteinQueryUtils.available_export_formats()}.'
+                        f'{ORFaqsProteinQueryApi.available_export_formats()}.'
                     ),
                     arg_type=str,
                 ),
@@ -236,7 +236,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
         workspace: str,
         **kwargs,
     ):
-        ORFaqsProteinQueryUtils.remove_workspace(workspace)
+        ORFaqsProteinQueryApi.remove_workspace(workspace)
 
     @staticmethod
     def _load_discovered_proteins(
@@ -244,7 +244,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
         discovered_proteins: (str | os.PathLike),
         **kwargs,
     ):
-        ORFaqsProteinQueryUtils.load_discovered_proteins(
+        ORFaqsProteinQueryApi.load_discovered_proteins(
             workspace=workspace,
             input_path=discovered_proteins,
         )
@@ -255,7 +255,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
         reference_proteins: (str | os.PathLike),
         **kwargs,
     ):
-        ORFaqsProteinQueryUtils.load_reference_proteins(
+        ORFaqsProteinQueryApi.load_reference_proteins(
             workspace=workspace,
             input_path=reference_proteins,
         )
@@ -268,7 +268,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
         query: str = None,
         **kwargs,
     ):
-        ORFaqsProteinQueryUtils.export_proteins(
+        ORFaqsProteinQueryApi.export_proteins(
             workspace=workspace,
             file_path=export_file_path,
             export_format=export_format,

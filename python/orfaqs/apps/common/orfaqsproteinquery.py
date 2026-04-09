@@ -251,8 +251,8 @@ class _ORFaqsDiscoveredProteinsTableFactory:
             )
 
 
-class ORFaqsProteinQueryUtils:
-    """ORFaqsProteinQueryUtils"""
+class ORFaqsProteinQueryApi:
+    """ORFaqsProteinQueryApi"""
 
     @staticmethod
     def default_export_format() -> str:
@@ -277,7 +277,7 @@ class ORFaqsProteinQueryUtils:
 
     @staticmethod
     def set_workspace(workspace: str):
-        ORFaqsProteinQueryUtils.set_database(workspace)
+        ORFaqsProteinQueryApi.set_database(workspace)
 
     @staticmethod
     def table() -> str:
@@ -347,7 +347,7 @@ class ORFaqsProteinQueryUtils:
             protein_length = row[
                 ORFaqsDiscoveredProteinTableSchema.PROTEIN_LENGTH_KEY
             ]
-            return ORFaqsProteinQueryUtils._create_uid(
+            return ORFaqsProteinQueryApi._create_uid(
                 uid=uid,
                 strand_type=strand_type,
                 reading_frame=reading_frame,
@@ -362,7 +362,7 @@ class ORFaqsProteinQueryUtils:
     @staticmethod
     def _prepare_dataframe_for_table(proteins_dataframe: pd.DataFrame):
         # Create a primary key
-        ORFaqsProteinQueryUtils._add_database_primary_key_column(
+        ORFaqsProteinQueryApi._add_database_primary_key_column(
             proteins_dataframe
         )
         expected_columns = ORFaqsDiscoveredProteinTableSchema.columns()
@@ -379,7 +379,7 @@ class ORFaqsProteinQueryUtils:
 
     @staticmethod
     def create_workspace(workspace: str):
-        ORFaqsProteinQueryUtils.set_workspace(workspace)
+        ORFaqsProteinQueryApi.set_workspace(workspace)
         PostgresDatabaseUtils.create_database(_database_connection_options)
 
     @staticmethod
@@ -451,8 +451,8 @@ class ORFaqsProteinQueryUtils:
         #######################################################################
         # Load all discovered proteins into the default database.
         # 1. Ensure the desired database and tables exist.
-        ORFaqsProteinQueryUtils.create_workspace(workspace)
-        ORFaqsProteinQueryUtils._create_orfaqs_discovered_proteins_table()
+        ORFaqsProteinQueryApi.create_workspace(workspace)
+        ORFaqsProteinQueryApi._create_orfaqs_discovered_proteins_table()
 
         # 2. Connect the the workspace database.
         database_connection = PostgresDatabaseUtils.connect(
@@ -463,7 +463,7 @@ class ORFaqsProteinQueryUtils:
         # database table.
         for file_path in discovered_proteins_files:
             proteins_dataframe = PandasUtils.read_file_as_dataframe(file_path)
-            ORFaqsProteinQueryUtils._prepare_dataframe_for_table(
+            ORFaqsProteinQueryApi._prepare_dataframe_for_table(
                 proteins_dataframe
             )
             PostgresDatabaseUtils.insert_from_dataframe(
@@ -526,8 +526,8 @@ class ORFaqsProteinQueryUtils:
         #######################################################################
         # Load all fasta proteins into the default database.
         # 1. Ensure the desired database and tables exist.
-        ORFaqsProteinQueryUtils.create_workspace(workspace)
-        ORFaqsProteinQueryUtils._create_orfaqs_reference_proteins_table()
+        ORFaqsProteinQueryApi.create_workspace(workspace)
+        ORFaqsProteinQueryApi._create_orfaqs_reference_proteins_table()
 
         # 2. Connect the the workspace database.
         database_connection = PostgresDatabaseUtils.connect(
@@ -565,12 +565,12 @@ class ORFaqsProteinQueryUtils:
         export_format: _ExportFormatOptions,
         query_condition: str = None,
     ):
-        ORFaqsProteinQueryUtils.set_workspace(workspace)
+        ORFaqsProteinQueryApi.set_workspace(workspace)
         database_connection = PostgresDatabaseUtils.connect(
             _database_connection_options
         )
 
-        query = f'SELECT * FROM {ORFaqsProteinQueryUtils.table()}'
+        query = f'SELECT * FROM {ORFaqsProteinQueryApi.table()}'
         if isinstance(query_condition, str):
             query += f' {query_condition}'
 
@@ -578,9 +578,7 @@ class ORFaqsProteinQueryUtils:
             sql=query,
             con=database_connection,
         )
-        ORFaqsProteinQueryUtils._prepare_dataframe_for_export(
-            results_dataframe
-        )
+        ORFaqsProteinQueryApi._prepare_dataframe_for_export(results_dataframe)
         PandasUtils.export_dataframe(
             file_path=file_path,
             dataframe=results_dataframe,
