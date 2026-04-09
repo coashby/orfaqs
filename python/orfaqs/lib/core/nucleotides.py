@@ -180,6 +180,9 @@ class GenomicSequence(Sequence):
 
         return _NUCLEIC_ACID_SYMBOL_LUT[item]
 
+    def __len__(self) -> int:
+        return len(self._sequence_str)
+
     @staticmethod
     @abstractmethod
     def available_bases() -> list[NucleicAcid]:

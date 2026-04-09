@@ -10,6 +10,7 @@ import orfaqs.lib.core.aminoacids as _aminoacids
 import orfaqs.lib.core.codons as _codons
 
 from collections.abc import Iterator
+from tqdm import tqdm
 
 from orfaqs.lib.utils.computeutils import (
     ComputeAccelerator,
@@ -214,13 +215,12 @@ class RibosomeUtils:
         rna_sequence: str | RNASequence, frame: RNAReadingFrame
     ) -> tuple[int, int]:
         sequence_length = len(rna_sequence)
-        if sequence_length < CodonUtils.number_bases_per_codon():
+        if sequence_length < Codon.number_bases():
             return None
 
         start_index = frame.value - 1
         stop_index = sequence_length - (
-            (sequence_length - start_index)
-            % CodonUtils.number_bases_per_codon()
+            (sequence_length - start_index) % Codon.number_bases()
         )
 
         return (start_index, stop_index)
@@ -233,12 +233,12 @@ class RibosomeUtils:
         if isinstance(rna_sequence, RNASequence):
             rna_sequence_str = rna_sequence.sequence_str
 
-        # Pad the codon list with dummy values
-        # to ensure all codons are processed.
-        base_padding_count = (
-            3 - len(rna_sequence_str) % CodonUtils.number_bases_per_codon()
-        ) % 3
-        rna_sequence_str += 'x' * base_padding_count
+        # Truncate the RNA sequence so that only valid codons are processed.
+        sequence_length = len(rna_sequence_str)
+        processing_length = sequence_length - (
+            sequence_length % Codon.number_bases()
+        )
+        rna_sequence_str = rna_sequence_str[:processing_length]
 
         return list(rna_sequence_str.encode())
 
@@ -248,87 +248,100 @@ class RibosomeUtils:
         for codon in codons:
             codons_packed_str += codon.sequence_str
 
-        return codons_packed_str
+        return list(codons_packed_str.encode())
 
     @staticmethod
     def _find_codons_gpu(
         rna_sequence: str | RNASequence,
         codons: list[Codon],
     ) -> list[int]:
-        rna_sequence_uint8_buffer = (
-            RibosomeUtils._prepare_rna_sequence_for_gpu(rna_sequence)
+        rna_sequence_buffer = RibosomeUtils._prepare_rna_sequence_for_gpu(
+            rna_sequence
         )
-        codons_packed_str = RibosomeUtils._prepare_codons_for_gpu(codons)
+        reference_codons_buffer = RibosomeUtils._prepare_codons_for_gpu(codons)
 
-        number_codons = int(
-            len(rna_sequence_uint8_buffer)
-            / CodonUtils.number_bases_per_codon()
-        )
-        number_start_codons = len(codons)
-        start_codon_indices: list[bool] = [False] * number_codons
-        results_buffer_index = 3
+        number_codons = int(len(rna_sequence_buffer) / Codon.number_bases())
+        number_reference_codons = len(codons)
+        found_codon_indices: list[bool] = [False] * number_codons
+        results_buffer_index = 5
 
         #######################################################################
         # Create a new ComputeAccelerator object to process the RNA sequence.
         compute_accelerator = RibosomeUtils._compute_accelerator()
+        data_stride = compute_accelerator.calculate_data_stride(number_codons)
         kernel_function_name = 'find_codons'
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=0,
-            arg=rna_sequence_uint8_buffer,
+            arg=rna_sequence_buffer,
             dtype=np.uint8,
         )
-        start_condon_uint8_buffer = list(codons_packed_str.encode())
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=1,
-            arg=start_condon_uint8_buffer,
-            dtype=np.uint8,
+            arg=number_codons,
+            dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=2,
-            arg=number_start_codons,
+            arg=data_stride,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=3,
+            arg=reference_codons_buffer,
+            dtype=np.uint8,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=4,
+            arg=number_reference_codons,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
             results_buffer_index,
-            start_codon_indices,
+            found_codon_indices,
             dtype=np.bool,
         )
         compute_accelerator.execute()
-        start_codon_indices = compute_accelerator.get_buffer(
+        found_codon_indices = compute_accelerator.get_buffer(
             buffer_index=results_buffer_index,
             dtype=np.bool,
         )
 
-        start_codon_indices = [
+        found_codon_indices = [
             index * Codon.number_bases()
-            for index in np.where(start_codon_indices)[0].tolist()
+            for index in np.where(found_codon_indices)[0].tolist()
         ]
-        return start_codon_indices
+        return found_codon_indices
 
     @staticmethod
     def _find_codons(
         rna_sequence: str | RNASequence,
         codons: list[Codon],
     ) -> list[int]:
-        start_codon_indices: list[int] = []
+        found_codon_indices: list[int] = []
         codon_index = 0
-        for codon in RibosomeUtils.read_codons(rna_sequence):
-            if codon in codons:
-                start_codon_indices.append(codon_index)
+        number_codons = int(len(rna_sequence) / Codon.number_bases())
+        description = 'Finding codons...'
+        with tqdm(total=number_codons, desc=description) as progress_bar:
+            for codon in RibosomeUtils.read_codons(rna_sequence):
+                if codon in codons:
+                    found_codon_indices.append(codon_index)
 
-            codon_index += CodonUtils.number_bases_per_codon()
+                codon_index += Codon.number_bases()
+                progress_bar.update(1)
 
-        return start_codon_indices
+        return found_codon_indices
 
     @staticmethod
     def find_start_codons(
         rna_sequence: str | RNASequence,
         start_codons: list[Codon] = None,
-        use_gpu: bool = True,
+        use_gpu: bool = False,
     ) -> list[int]:
         """
         Returns a sorted list of base indices from the input sequence, in
@@ -407,7 +420,7 @@ class RibosomeUtils:
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
         i = 0
-        codon_step = CodonUtils.number_bases_per_codon()
+        codon_step = Codon.number_bases()
         # Only read a multiple of codon_step bases.
         read_length = rna_sequence.sequence_length - (
             rna_sequence.sequence_length % codon_step
@@ -424,7 +437,7 @@ class RibosomeUtils:
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
         i = 0
-        codon_step = CodonUtils.number_bases_per_codon()
+        codon_step = Codon.number_bases()
         # Only read a multiple of codon_step bases.
         read_length = rna_sequence.sequence_length - (
             rna_sequence.sequence_length % codon_step
@@ -436,7 +449,7 @@ class RibosomeUtils:
             i += codon_step
 
     @staticmethod
-    def _all_orf_lengths(
+    def _all_orf_lengths_gpu(
         start_codon_indices: list[int],
         stop_codon_indices: list[int],
     ) -> list[int]:
@@ -445,8 +458,11 @@ class RibosomeUtils:
         orf_lengths: list[int] = [0] * number_start_codons
         #######################################################################
         # Create a new ComputeAccelerator object to process the indices.
-        results_buffer_index = 4
+        results_buffer_index = 5
         compute_accelerator = RibosomeUtils._compute_accelerator()
+        data_stride = compute_accelerator.calculate_data_stride(
+            number_start_codons
+        )
         kernel_function_name = 'all_orf_lengths'
         compute_accelerator.set_arg(
             kernel_function_name,
@@ -474,6 +490,12 @@ class RibosomeUtils:
         )
         compute_accelerator.set_arg(
             kernel_function_name,
+            arg_index=4,
+            arg=data_stride,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
             arg_index=results_buffer_index,
             arg=orf_lengths,
             dtype=np.int32,
@@ -487,13 +509,72 @@ class RibosomeUtils:
         return orf_lengths
 
     @staticmethod
+    def _create_uint8_buffer(buffer_length: int) -> list[int]:
+        return list((' ' * buffer_length).encode())
+
+    @staticmethod
+    def _rna_to_amino_acid_sequence_buffer_gpu(
+        rna_sequence: str | RNASequence,
+    ) -> list[int]:
+        rna_sequence_buffer = RibosomeUtils._prepare_rna_sequence_for_gpu(
+            rna_sequence
+        )
+        number_codons = int(len(rna_sequence_buffer) / Codon.number_bases())
+        amino_acid_sequence_length = number_codons
+        amino_acid_sequence_buffer = RibosomeUtils._create_uint8_buffer(
+            amino_acid_sequence_length
+        )
+
+        #######################################################################
+        # Create a new ComputeAccelerator object to process the
+        # amino acid sequence.
+        results_buffer_index = 3
+        compute_accelerator = RibosomeUtils._compute_accelerator()
+        # Use the largest data dimension available to calculate the
+        # data stride.
+        data_stride = compute_accelerator.calculate_data_stride(number_codons)
+        kernel_function_name = 'rna_to_amino_acid_sequence'
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=0,
+            arg=rna_sequence_buffer,
+            dtype=np.uint8,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=1,
+            arg=number_codons,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=2,
+            arg=data_stride,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=results_buffer_index,
+            arg=amino_acid_sequence_buffer,
+            dtype=np.uint8,
+        )
+
+        compute_accelerator.execute()
+        amino_acid_sequence_buffer = compute_accelerator.get_buffer(
+            buffer_index=results_buffer_index,
+            dtype=np.uint8,
+        )
+
+        return amino_acid_sequence_buffer
+
+    @staticmethod
     def _translate_all_orfs_gpu(
         rna_sequence: str | RNASequence,
         start_codon_indices: list[int],
         stop_codon_indices: list[int],
     ) -> dict[int, Protein]:
-        rna_sequence_uint8_buffer = (
-            RibosomeUtils._prepare_rna_sequence_for_gpu(rna_sequence)
+        amino_acid_sequence_buffer = (
+            RibosomeUtils._rna_to_amino_acid_sequence_buffer_gpu(rna_sequence)
         )
         # Sort and convert all codon indices to condon-centric indices.
         start_codon_indices = RibosomeUtils._convert_base_to_codon_indices(
@@ -504,11 +585,13 @@ class RibosomeUtils:
         )
 
         # Compute the lengths of each ORF.
-        orf_lengths = RibosomeUtils._all_orf_lengths(
+        orf_lengths = RibosomeUtils._all_orf_lengths_gpu(
             start_codon_indices,
             stop_codon_indices,
         )
-        # Remove all start codon indices that do not start a valid ORF.
+        # Remove all start codon indices that do not start a valid ORF. This is
+        # determined by finding the first start codon index that resulted in an
+        # ORF length of 0.
         if 0 in orf_lengths:
             end_index = orf_lengths.index(0)
             orf_lengths = orf_lengths[:end_index]
@@ -517,18 +600,24 @@ class RibosomeUtils:
         number_start_codons = len(start_codon_indices)
         # Create the protein buffer.
         protein_buffer_length = sum(orf_lengths)
-        all_orf_proteins_uint8_buffer: bytes = list(
-            (' ' * protein_buffer_length).encode()
+        all_orf_proteins_buffer = RibosomeUtils._create_uint8_buffer(
+            protein_buffer_length
         )
         #######################################################################
-        # Create a new ComputeAccelerator object to process the RNA sequence.
-        results_buffer_index = 4
+        # Create a new ComputeAccelerator object to process the
+        # amino acid sequence.
+        results_buffer_index = 5
         compute_accelerator = RibosomeUtils._compute_accelerator()
+        # Use the largest data dimension available to calculate the
+        # data stride.
+        data_stride = compute_accelerator.calculate_data_stride(
+            number_start_codons
+        )
         kernel_function_name = 'translate_all_orfs'
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=0,
-            arg=rna_sequence_uint8_buffer,
+            arg=amino_acid_sequence_buffer,
             dtype=np.uint8,
         )
         compute_accelerator.set_arg(
@@ -540,35 +629,42 @@ class RibosomeUtils:
         compute_accelerator.set_arg(
             kernel_function_name,
             arg_index=2,
-            arg=number_start_codons,
-            dtype=np.uint32,
-        )
-        compute_accelerator.set_arg(
-            kernel_function_name,
-            arg_index=3,
             arg=orf_lengths,
             dtype=np.uint32,
         )
         compute_accelerator.set_arg(
             kernel_function_name,
+            arg_index=3,
+            arg=number_start_codons,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
+            arg_index=4,
+            arg=data_stride,
+            dtype=np.uint32,
+        )
+        compute_accelerator.set_arg(
+            kernel_function_name,
             arg_index=results_buffer_index,
-            arg=all_orf_proteins_uint8_buffer,
+            arg=all_orf_proteins_buffer,
             dtype=np.uint8,
         )
 
         compute_accelerator.execute()
-        all_orf_proteins_uint8_buffer = compute_accelerator.get_buffer(
+        all_orf_proteins_buffer = compute_accelerator.get_buffer(
             buffer_index=results_buffer_index,
             dtype=np.uint8,
         )
         all_orf_proteins: dict[int, Protein] = {}
         buffer_start_index = 0
+
         for index, length in enumerate(orf_lengths):
             buffer_end_index = buffer_start_index + length
-            protein_uint8_buffer = all_orf_proteins_uint8_buffer[
+            protein_buffer = all_orf_proteins_buffer[
                 buffer_start_index:buffer_end_index
             ]
-            protein_str = bytearray(protein_uint8_buffer).decode()
+            protein_str = bytearray(protein_buffer).decode().replace(' ', '')
             base_index = start_codon_indices[index] * Codon.number_bases()
             all_orf_proteins[base_index] = Protein(protein_str)
             buffer_start_index = buffer_end_index
@@ -600,31 +696,42 @@ class RibosomeUtils:
 
         # Copy all valid amino acid sequences into the ORF protein list.
         all_orf_proteins: dict[int, Protein] = {}
+        # Mark the end of the translation routine by adding a stop index to
+        # the start_codon_indices list.
+        end_of_list_marker = -1
+        start_codon_indices.append(end_of_list_marker)
         # Reverse the indices to provide stack functionality.
         start_codon_indices.reverse()
         stop_codon_indices.reverse()
         start_codon_index = start_codon_indices.pop()
         stop_codon_index = stop_codon_indices.pop()
-        while len(start_codon_indices) > 0:
-            if start_codon_index > stop_codon_index:
-                if len(stop_codon_indices) == 0:
-                    # There are no more stop codons to mark the
-                    # end of a valid reading frame.
-                    break
-                else:
-                    # Get a new stop codon index.
-                    stop_codon_index = stop_codon_indices.pop()
-                    # Reevaluate outer loop conditions before
-                    # attempting transcription.
-                    continue
+        number_start_codons = len(start_codon_indices)
+        description = 'Translating ORFs...'
+        with tqdm(total=number_start_codons, desc=description) as progress_bar:
+            while start_codon_index != end_of_list_marker:
+                if start_codon_index > stop_codon_index:
+                    if len(stop_codon_indices) == 0:
+                        # There are no more stop codons to mark the
+                        # end of a valid reading frame.
+                        break
+                    else:
+                        # Get a new stop codon index.
+                        stop_codon_index = stop_codon_indices.pop()
+                        # Reevaluate outer loop conditions before
+                        # attempting transcription.
+                        continue
 
-            # Transcribe the ORF.
-            start_codon_base_index = start_codon_index * Codon.number_bases()
-            all_orf_proteins[start_codon_base_index] = Protein(
-                amino_acids[start_codon_index:stop_codon_index]
-            )
-            # Get a new start codon index.
-            start_codon_index = start_codon_indices.pop()
+                # Transcribe the ORF.
+                start_codon_base_index = (
+                    start_codon_index * Codon.number_bases()
+                )
+                # Do not include the stop codon in the translation.
+                all_orf_proteins[start_codon_base_index] = Protein(
+                    amino_acids[start_codon_index:stop_codon_index]
+                )
+                # Get a new start codon index.
+                start_codon_index = start_codon_indices.pop()
+                progress_bar.update(1)
 
         return all_orf_proteins
 

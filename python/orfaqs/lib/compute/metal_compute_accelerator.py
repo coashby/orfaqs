@@ -185,6 +185,14 @@ class MetalComputeAccelerator(ComputeAccelerator):
             )
             self._kernel_arg_buffers.append(buffer_arg)
 
+    @staticmethod
+    def calculate_data_stride(data_length: int) -> int:
+        number_available_threads = (
+            MetalComputeAccelerator.max_number_threads_on_device()
+        )
+
+        return min(data_length, number_available_threads)
+
     def execute(
         self,
         blocking: bool = True,

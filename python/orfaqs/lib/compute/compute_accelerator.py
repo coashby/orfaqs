@@ -144,6 +144,12 @@ class ComputeAccelerator(abc.ABC):
     ):
         pass
 
+    staticmethod
+
+    @abc.abstractmethod
+    def calculate_data_stride(data_length: int) -> int:
+        pass
+
     @abc.abstractmethod
     def execute(self, blocking: bool = True, **kwargs):
         pass

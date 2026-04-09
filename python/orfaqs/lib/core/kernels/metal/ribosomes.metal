@@ -93,86 +93,94 @@ uchar codon_to_amino_acid(uchar3 codon) {
     return amino_acid;
 }
 
+kernel void find_codons(
+    device packed_uchar3* rna_sequence [[buffer(0)]],
+    constant uint &number_codons [[buffer(1)]],
+    constant uint &data_stride [[buffer(2)]],
+    device packed_uchar3* reference_codons [[buffer(3)]],
+    constant uint &number_reference_codons [[buffer(4)]],
+    device bool* found_codon_indices [[buffer(5)]],
+    uint g_id [[thread_position_in_grid]]) {
+    // Process all codons within the RNA sequence.
+    for (uint g_i = g_id; g_i < number_codons; g_i += data_stride) {
+        uchar3 current_codon = rna_sequence[g_i];
+        for (int i = 0; i < number_reference_codons; ++i) {
+            if (all(current_codon == reference_codons[i])) {
+                found_codon_indices[g_i] = true;
+                break;
+            }
+        }
+    }
+}
+
 kernel void all_orf_lengths(
     device uint* start_codon_indices [[buffer(0)]],
     constant uint &number_start_codons [[buffer(1)]],
     device uint* stop_codon_indices [[buffer(2)]],
     constant uint &number_stop_codons [[buffer(3)]],
-    device uint* orf_lengths [[buffer(4)]],
+    constant uint &data_stride [[buffer(4)]],
+    device uint* orf_lengths [[buffer(5)]],
     uint g_id [[thread_position_in_grid]]) {
     // Find the start and stop codon pair (if it exists)
     // defining the reading frame for the protein.
-    int start_codon_index = start_codon_indices[g_id];
-    int stop_codon_index = -1;
-    bool start_codon_begins_orf = false;
-    for (int i = 0; i < number_stop_codons; ++i) {
-        stop_codon_index = stop_codon_indices[i];
-        if (start_codon_index < stop_codon_index) {
-            start_codon_begins_orf = true;
-            break;
+    for (int i = g_id; i < number_start_codons; i += data_stride) {
+        int start_codon_index = start_codon_indices[i];
+        int stop_codon_index = -1;
+        bool start_codon_begins_orf = false;
+        for (int j = 0; j < number_stop_codons; ++j) {
+            stop_codon_index = stop_codon_indices[j];
+            if (start_codon_index < stop_codon_index) {
+                start_codon_begins_orf = true;
+                break;
+            }
+        }
+
+        // If the start codon marks the start of an ORF,
+        // record the length of the ORF.
+        if (start_codon_begins_orf) {
+            // Do not include the stop codon when computing the length.
+            orf_lengths[i] = stop_codon_index - start_codon_index;
         }
     }
-
-    // If the start codon marks the start of an ORF,
-    // record the length of the ORF.
-    if (start_codon_begins_orf) {
-        orf_lengths[g_id] = stop_codon_index - start_codon_index;
-    }
-
 }
+
+kernel void rna_to_amino_acid_sequence(
+    device packed_uchar3* rna_sequence [[buffer(0)]],
+    constant uint &number_codons [[buffer(1)]],
+    constant uint &data_stride [[buffer(2)]],
+    device uchar* amino_acid_sequence [[buffer(3)]],
+    uint g_id [[thread_position_in_grid]]) {
+    for (int i = g_id; i < number_codons; i += data_stride) {
+        amino_acid_sequence[i] = codon_to_amino_acid(rna_sequence[i]);
+    }
+}
+
 kernel void translate_all_orfs(
-    device packed_uchar3* rna_sequence [[buffer(0)]],
+    device uchar* amino_acid_sequence [[buffer(0)]],
     device uint* start_codon_indices [[buffer(1)]],
-    constant uint &number_start_codons [[buffer(2)]],
-    device uint* orf_lengths [[buffer(3)]],
-    device uchar* all_orf_proteins [[buffer(4)]],
+    device uint* orf_lengths [[buffer(2)]],
+    constant uint &number_start_codons [[buffer(3)]],
+    constant uint &data_stride [[buffer(4)]],
+    device uchar* all_orf_proteins [[buffer(5)]],
     uint g_id [[thread_position_in_grid]]) {
 
-    if (g_id >= number_start_codons) {
-        return;
-    }
-    // Find the start and stop codon pair (if it exists)
-    // defining the reading frame for the protein.
-    int start_codon_index = start_codon_indices[g_id];
-
+    ////////////////////////////////////////////////////////////////////////////
     // Translate the ORF.
-    uint protein_buffer_offset = 0;
-    for (int i = 0; i < g_id; ++i) {
-        protein_buffer_offset += orf_lengths[i];
-    }
+    for (int i = g_id; i < number_start_codons; i += data_stride) {
+        // Determine the offset position within the protein buffer where the
+        // resulting protein should be stored.
+        uint protein_buffer_offset = 0;
+        for (int j = 0; j < i; ++j) {
+            protein_buffer_offset += orf_lengths[j];
+        }
 
-    device uchar* protein = &all_orf_proteins[protein_buffer_offset];
-    uint protein_length = orf_lengths[g_id];
-    for (int i = 0; i < protein_length; ++i) {
-        uchar3 codon = rna_sequence[start_codon_index + i];
-        protein[i] = codon_to_amino_acid(codon);
-    }
-}
-
-/*
-Find all start codons in the given sequence and return the indices in the output
-buffer.
-
-:param rna_sequence packed_uchar3*:
-    An RNA sequence stored as a packed buffer of uchar3 vectors.
-:param codons packed_uchar3*:
-    <>
-:param number_start_codons const int:
-    <>
-:param start_codon_indices bool*:
-    <>
-*/
-kernel void find_codons(
-    device packed_uchar3* rna_sequence [[buffer(0)]],
-    device packed_uchar3* codons [[buffer(1)]],
-    constant uint &number_start_codons [[buffer(2)]],
-    device bool* start_codon_indices [[buffer(3)]],
-    uint g_id [[thread_position_in_grid]]) {
-    uchar3 current_codon = rna_sequence[g_id];
-    for (int i = 0; i < number_start_codons; ++i) {
-        if (all(current_codon == codons[i])) {
-            start_codon_indices[g_id] = true;
-            break;
+        // Find the start codon defining the ORF for the protein and copy the
+        // pre-computed translations into the final output buffer.
+        uint start_codon_index = start_codon_indices[i];
+        device uchar* protein = &all_orf_proteins[protein_buffer_offset];
+        uint protein_length = orf_lengths[i];
+        for (int k = 0; k < protein_length; ++k) {
+            protein[k] = amino_acid_sequence[start_codon_index + k];
         }
     }
 }
