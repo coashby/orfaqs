@@ -62,16 +62,18 @@ class PandasUtils:
         file_path: (str | os.PathLike),
         dataframe: pd.DataFrame,
         export_format: DataFrameExportFormatOptions,
+        include_index: bool = False,
         index_label: str = None,
     ) -> pathlib.Path:
         file_path = DirectoryUtils.make_path_object(file_path)
-        export_index = index_label is not None
+        if include_index and index_label is None:
+            index_label = 'index'
         if DataFrameExportFormat.CSV in export_format:
             file_path = file_path.with_suffix(f'.{DataFrameExportFormat.CSV}')
             dataframe.to_csv(
                 file_path,
                 index_label=index_label,
-                index=export_index,
+                index=include_index,
             )
         elif DataFrameExportFormat.JSON in export_format:
             file_path = file_path.with_suffix(f'.{DataFrameExportFormat.JSON}')
@@ -81,6 +83,6 @@ class PandasUtils:
             dataframe.to_excel(
                 file_path,
                 index_label=index_label,
-                index=export_index,
+                index=include_index,
             )
         return file_path
