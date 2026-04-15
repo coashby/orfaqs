@@ -259,8 +259,21 @@ class ORFaqsProteinQueryApi:
         return DataFrameExportFormat.CSV
 
     @staticmethod
-    def default_output_directory() -> str:
-        return './'
+    def default_output_directory() -> pathlib.Path:
+        return DirectoryUtils.make_path_object('./')
+
+    @staticmethod
+    def default_export_file_name() -> pathlib.Path:
+        return 'orfaqs-protein-query-results'
+
+    @staticmethod
+    def default_export_file_path() -> pathlib.Path:
+        default_format = ORFaqsProteinQueryApi.default_export_format()
+        default_file_name = ORFaqsProteinQueryApi.default_export_file_name()
+        return (
+            ORFaqsProteinQueryApi.default_output_directory()
+            / f'{default_file_name}.{default_format}'
+        )
 
     @staticmethod
     def available_export_formats() -> list[str]:
@@ -562,9 +575,12 @@ class ORFaqsProteinQueryApi:
     def export_proteins(
         workspace: str,
         file_path: (str | os.PathLike),
-        export_format: _ExportFormatOptions,
+        export_format: _ExportFormatOptions = None,
         query_condition: str = None,
     ):
+        if export_format is None:
+            export_format = ORFaqsProteinQueryApi.default_export_format()
+
         ORFaqsProteinQueryApi.set_workspace(workspace)
         database_connection = PostgresDatabaseUtils.connect(
             _database_connection_options

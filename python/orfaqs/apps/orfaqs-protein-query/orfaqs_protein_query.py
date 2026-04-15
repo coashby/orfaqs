@@ -37,16 +37,11 @@ class ORFaqsProteinQuery(ORFaqsApp):
         return 'ORFaqs Protein Query'
 
     @staticmethod
-    def default_export_file():
-        return 'exported-protein-query'
-
-    @staticmethod
     def at_least_one_expected_options():
         return [
             'discovered_proteins',
             'export_file_path',
             'export_format',
-            'proteins',
             'query',
             'reference_proteins',
             'remove_workspace',
@@ -56,16 +51,6 @@ class ORFaqsProteinQuery(ORFaqsApp):
     def cli():
         try:
             args_list = [
-                CliUtil.create_new_arg_descriptor(
-                    ('-p, --proteins'),
-                    arg_help=(
-                        'A protein sequence string, or protein FASTA file. '
-                        'Additional information regarding specific input '
-                        'requirements is specified in relevant option '
-                        'descriptions.'
-                    ),
-                    arg_type=str,
-                ),
                 CliUtil.create_new_arg_descriptor(
                     ('-j', '--job_id'),
                     arg_help=(
@@ -102,13 +87,26 @@ class ORFaqsProteinQuery(ORFaqsApp):
                     arg_type=str,
                 ),
                 CliUtil.create_new_arg_descriptor(
+                    ('--export'),
+                    arg_help=(
+                        'If enabled, data from the specified workspace and '
+                        'table will be exported. '
+                        'Provide the workspace using the (-w, --workspace) '
+                        'option and the table using the (-t, --table) option. '
+                        'Otherwise, the default workspace and table are '
+                        'exported.'
+                    ),
+                    action='store_true',
+                    default=None,
+                ),
+                CliUtil.create_new_arg_descriptor(
                     ('--export_file_path'),
                     arg_help=(
                         'The file path where workspace data is exported. If '
                         'an operation is expected to export data, and no '
                         'export path is given, the file will be created in '
                         'output directory with the file name: '
-                        f'{ORFaqsProteinQuery.default_export_file()}.*.'
+                        f'{ORFaqsProteinQueryApi.default_export_file_name()}.'
                     ),
                     arg_type=str,
                 ),
@@ -232,10 +230,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
                 raise SystemExit from e
 
     @staticmethod
-    def _remove_workspace(
-        workspace: str,
-        **kwargs,
-    ):
+    def _remove_workspace(workspace: str):
         ORFaqsProteinQueryApi.remove_workspace(workspace)
 
     @staticmethod
@@ -265,7 +260,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
         workspace: str,
         export_file_path: (str | os.PathLike),
         export_format: str,
-        query: str = None,
+        query: str,
         **kwargs,
     ):
         ORFaqsProteinQueryApi.export_proteins(
@@ -280,9 +275,8 @@ class ORFaqsProteinQuery(ORFaqsApp):
         output_directory: (str | os.PathLike),
         job_id: str = None,
         workspace: str = None,
+        export: bool = None,
         load_proteins: bool = False,
-        export_file_path: str = None,
-        export_format: str = None,
         remove_workspace: bool = False,
         **kwargs,
     ):
@@ -303,31 +297,44 @@ class ORFaqsProteinQuery(ORFaqsApp):
         # Set the default workspace if none is provided.
         if workspace is None:
             workspace = ORFaqsProteinQuery._DEFAULT_WORKSPACE
-        kwargs['workspace'] = workspace
         #######################################################################
         # Remove workspace
         if remove_workspace:
-            ORFaqsProteinQuery._remove_workspace(**kwargs)
+            ORFaqsProteinQuery._remove_workspace(workspace)
             return
 
         #######################################################################
         # Load proteins...
         if load_proteins:
             if kwargs.get('discovered_proteins') is not None:
-                ORFaqsProteinQuery._load_discovered_proteins(**kwargs)
+                ORFaqsProteinQuery._load_discovered_proteins(
+                    workspace=workspace,
+                    **kwargs,
+                )
             elif kwargs.get('reference_proteins') is not None:
-                ORFaqsProteinQuery._load_reference_proteins(**kwargs)
+                ORFaqsProteinQuery._load_reference_proteins(
+                    workspace=workspace,
+                    **kwargs,
+                )
 
         #######################################################################
         # Export proteins conditions...
-        if (export_file_path is not None) or (export_format is not None):
+        if (
+            export
+            or (kwargs.get('export_file_path') is not None)
+            or (kwargs.get('export_format') is not None)
+        ):
+            export_file_path = kwargs.get('export_file_path')
             if export_file_path is None:
-                export_file_path = output_directory.joinpath(
-                    ORFaqsProteinQuery.default_export_file()
+                export_file_path = (
+                    output_directory
+                    / ORFaqsProteinQueryApi.default_export_file_name()
                 )
-            kwargs['export_format'] = export_format
-            kwargs['export_file_path'] = export_file_path
-            ORFaqsProteinQuery._export_proteins(**kwargs)
+                kwargs['export_file_path'] = export_file_path
+            ORFaqsProteinQuery._export_proteins(
+                workspace=workspace,
+                **kwargs,
+            )
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # Discover Proteins with ORFaqs
 ORFaqs Protein Discovery processes genomic sequences and provides you with a
-list of all possible proteins. The tool does models some biological aspects
+list of all possible proteins. The tool does model some biological aspects
 of the converting genomic sequences into representative proteins
 (transcription, translation, ect.). However, it makes no effort to do so in a
 biologically plausible fashion.
@@ -11,7 +11,7 @@ relies on two basic parameters:
 - the reading frames in which translation occurs.
 
 With this approach, you are not constrained by what is *known*, but rather, you
-are encouraged to ask: *What is possible?*
+are encouraged to ask: *What is possible.*
 
 ## Using the CLI
 **Prerequisites**
@@ -54,7 +54,7 @@ orfaqs_protein_discovery -i ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTG
 ### Specifying the Exported Results Format
 The `export_format` option is used to control format of the discovered proteins
 results. The expected command line value for each supported format is given in
-the table below:
+the table below.
 | Export Format | Command Line Value | Export File Extension |
 |-|-|-|
 | **CSV** *(default option)* | `csv` |*.csv* |
