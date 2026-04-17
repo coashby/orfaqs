@@ -35,7 +35,10 @@ class PandasUtils:
         return _AVAILABLE_EXPORT_FORMATS
 
     @staticmethod
-    def read_file_as_dataframe(file_path: (str | os.PathLike)) -> pd.DataFrame:
+    def read_file_as_dataframe(
+        file_path: (str | os.PathLike),
+        raise_error: bool = True,
+    ) -> pd.DataFrame:
         results_dataframe: pd.DataFrame = None
         file_type = DirectoryUtils.make_path_object(file_path).suffix.lower()
         if DataFrameExportFormat.CSV in file_type:
@@ -45,16 +48,19 @@ class PandasUtils:
         elif DataFrameExportFormat.XLSX in file_type:
             results_dataframe = pd.read_excel(file_path, index_col=False)
         else:
-            message = (
-                '[ERROR] The input file type is not currently supported.\n'
-                '(debug) ->\n'
-                f'\tfile_path: {file_path}\n'
-                f'\tfile_type: {file_type}'
-            )
-            _logger.error(message)
-            raise ValueError(message)
+            if raise_error:
+                message = (
+                    '[ERROR] The input file type is not currently supported.\n'
+                    '(debug) ->\n'
+                    f'\tfile_path: {file_path}\n'
+                    f'\tfile_type: {file_type}'
+                )
+                _logger.error(message)
+                raise ValueError(message)
 
-        results_dataframe.reset_index(inplace=True)
+        if results_dataframe is not None:
+            results_dataframe.reset_index(inplace=True)
+
         return results_dataframe
 
     @staticmethod

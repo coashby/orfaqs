@@ -4,6 +4,7 @@ ORFaqs Protein Discovery common app classes, resources, and utility functions.
 
 import enum
 import logging
+import os
 import pathlib
 
 from tqdm import tqdm
@@ -77,6 +78,41 @@ class ORFaqsProteinDiscoveryApi:
         ] + ORFaqsDiscoveredProteinRecord.keys()
 
     @staticmethod
+    def find_discovered_protein_files(
+        input_path: str | os.PathLike,
+    ) -> list[pathlib.Path]:
+        #######################################################################
+        # Gather all discovery files.
+        input_file_paths: list[pathlib.Path] = []
+        if DirectoryUtils.is_file(input_path):
+            input_file_paths.append(input_path)
+
+        elif DirectoryUtils.is_directory(input_path):
+            # Grab all files from the directory. In discoveries involving
+            # multiple genes, discovery files will be organized in
+            # subdirectories.
+            input_file_paths = DirectoryUtils.glob_files(
+                input_path, recursive=True
+            )
+
+        discovered_proteins_files: list[pathlib.Path] = []
+        for file_path in input_file_paths:
+            # Validate the file paths...
+            proteins_dataframe = PandasUtils.read_file_as_dataframe(
+                file_path,
+                raise_error=False,
+            )
+            if proteins_dataframe is None:
+                continue
+
+            for record_key in ORFaqsDiscoveredProteinRecord.keys():
+                if record_key not in proteins_dataframe.columns:
+                    continue
+            discovered_proteins_files.append(file_path)
+
+        return discovered_proteins_files
+
+    @staticmethod
     def unreferenced_uid() -> str:
         "unknown_reference"
 
@@ -92,7 +128,7 @@ class ORFaqsProteinDiscoveryApi:
 
     @staticmethod
     def _export_discovered_proteins(
-        file_path: str | pathlib.Path,
+        file_path: str | os.PathLike,
         discovered_proteins: list[ORFaqsDiscoveredProteinRecord],
         export_format: _ExportFormatOptions,
     ):
@@ -149,7 +185,7 @@ class ORFaqsProteinDiscoveryApi:
         start_codons: list[Codon] = None,
         stop_codons: list[Codon] = None,
         include_reverse_complement: bool = True,
-        output_directory: str | pathlib.Path = None,
+        output_directory: str | os.PathLike = None,
         export_format: _ExportFormatOptions = None,
         use_gpu: bool = True,
     ) -> list[ORFaqsDiscoveredProteinRecord]:
@@ -258,7 +294,7 @@ class ORFaqsProteinDiscoveryApi:
         uid: str = None,
         include_reverse_complement: bool = True,
         export_format: _ExportFormatOptions = None,
-        output_directory: str | pathlib.Path = None,
+        output_directory: str | os.PathLike = None,
         use_gpu: bool = True,
     ) -> list[ORFaqsDiscoveredProteinRecord]:
         if export_format is None:
@@ -286,11 +322,11 @@ class ORFaqsProteinDiscoveryApi:
 
     @staticmethod
     def process_fasta_file(
-        fasta_file_path: str | pathlib.Path,
+        fasta_file_path: str | os.PathLike,
         strand_type: StrandType = None,
         include_reverse_complement: bool = True,
         export_format: _ExportFormatOptions = None,
-        output_directory: str | pathlib.Path = None,
+        output_directory: str | os.PathLike = None,
         display_progress: bool = True,
         use_gpu: bool = True,
     ) -> dict[str, list[ORFaqsDiscoveredProteinRecord]]:

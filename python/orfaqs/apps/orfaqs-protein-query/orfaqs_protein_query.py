@@ -39,12 +39,12 @@ class ORFaqsProteinQuery(ORFaqsApp):
     @staticmethod
     def at_least_one_expected_options():
         return [
-            'discovered_proteins',
             'export_file_path',
             'export_format',
+            'load_proteins',
             'query',
-            'reference_proteins',
             'remove_workspace',
+            'remove_table',
         ]
 
     @staticmethod
@@ -134,6 +134,19 @@ class ORFaqsProteinQuery(ORFaqsApp):
                     default=None,
                 ),
                 CliUtil.create_new_arg_descriptor(
+                    ('--remove_table'),
+                    arg_help=(
+                        'If enabled, the specified workspace database table '
+                        'is removed. Provide the workspace using the '
+                        '(-w, --workspace) option and the database table using '
+                        'the (-t, --table_name) option. '
+                        '**Note**: Use of this option drops all '
+                        'other options and actions from execution.'
+                    ),
+                    action='store_true',
+                    default=None,
+                ),
+                CliUtil.create_new_arg_descriptor(
                     ('-q', '--query'),
                     arg_help=(
                         'Query string for inspecting the protein sequence '
@@ -145,15 +158,22 @@ class ORFaqsProteinQuery(ORFaqsApp):
                 CliUtil.create_new_arg_descriptor(
                     ('-l', '--load_proteins'),
                     arg_help=(
-                        'Loads the present protein data into the specified '
-                        'workspace database table. Load proteins into the the '
-                        'discovered proteins table using the '
-                        '(--discovered_proteins) option, or into the '
-                        'reference proteins table using the '
-                        '(--reference_proteins) option. Provide the workspace '
-                        'using the (-w, --workspace) option.'
+                        'A protein file, or directory containing protein '
+                        'data. Data is loaded into the specified workspace '
+                        'and database table. Provide the workspace using the '
+                        '(-w, --workspace) option and the table using the '
+                        '(-t, --table) option.'
                     ),
-                    action='store_true',
+                    arg_type=str,
+                    default=None,
+                ),
+                CliUtil.create_new_arg_descriptor(
+                    ('-t, --table'),
+                    arg_help=(
+                        'The name to give the table created for storing the '
+                        'data specified in (-l, --load_proteins) command.'
+                    ),
+                    arg_type=str,
                     default=None,
                 ),
                 CliUtil.create_new_arg_descriptor(
@@ -169,27 +189,8 @@ class ORFaqsProteinQuery(ORFaqsApp):
                 ),
             ]
 
-            mutually_exclusive_args_list = [
-                CliUtil.create_new_arg_descriptor(
-                    ('--discovered_proteins'),
-                    arg_help=(
-                        'A discovered proteins file, or directory, generated '
-                        'by ORFaqs Protein Discovery app.'
-                    ),
-                    arg_type=str,
-                ),
-                CliUtil.create_new_arg_descriptor(
-                    ('--reference_proteins'),
-                    arg_help=(
-                        'A protein file, or directory containing protein data '
-                        'in FASTA file format.'
-                    ),
-                    arg_type=str,
-                ),
-            ]
             cli_arg_parser = CliUtil.create_arg_parser(
                 args_list,
-                mutually_exclusive_args_list=mutually_exclusive_args_list,
                 program_name=ORFaqsProteinQuery.program_name(),
                 description=(
                     'Run queries on collections of protein sequences.'
@@ -234,30 +235,32 @@ class ORFaqsProteinQuery(ORFaqsApp):
         ORFaqsProteinQueryApi.remove_workspace(workspace)
 
     @staticmethod
-    def _load_discovered_proteins(
+    def _remove_table(
         workspace: str,
-        discovered_proteins: (str | os.PathLike),
-        **kwargs,
+        table_name: str,
     ):
-        ORFaqsProteinQueryApi.load_discovered_proteins(
+        ORFaqsProteinQueryApi.remove_table(
             workspace=workspace,
-            input_path=discovered_proteins,
+            table_name=table_name,
         )
 
     @staticmethod
-    def _load_reference_proteins(
+    def _load_proteins(
         workspace: str,
-        reference_proteins: (str | os.PathLike),
+        table_name: str,
+        input_path: (str | os.PathLike),
         **kwargs,
     ):
-        ORFaqsProteinQueryApi.load_reference_proteins(
+        ORFaqsProteinQueryApi.load_proteins(
             workspace=workspace,
-            input_path=reference_proteins,
+            table_name=table_name,
+            input_path=input_path,
         )
 
     @staticmethod
     def _export_proteins(
         workspace: str,
+        table_name: str,
         export_file_path: (str | os.PathLike),
         export_format: str,
         query: str,
@@ -265,7 +268,8 @@ class ORFaqsProteinQuery(ORFaqsApp):
     ):
         ORFaqsProteinQueryApi.export_proteins(
             workspace=workspace,
-            file_path=export_file_path,
+            table_name=table_name,
+            export_path=export_file_path,
             export_format=export_format,
             query_condition=query,
         )
@@ -275,9 +279,11 @@ class ORFaqsProteinQuery(ORFaqsApp):
         output_directory: (str | os.PathLike),
         job_id: str = None,
         workspace: str = None,
+        table_name: str = None,
         export: bool = None,
-        load_proteins: bool = False,
+        load_proteins: str = None,
         remove_workspace: bool = False,
+        remove_table: bool = False,
         **kwargs,
     ):
         if output_directory is None:
@@ -288,7 +294,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
             ORFaqsProteinQuery.default_output_directory()
         )
 
-        # Create the local output directory and output file path
+        # Create the local output directory and output file path.
         output_directory = DirectoryUtils.make_path_object(output_directory)
         if isinstance(job_id, str):
             output_directory = output_directory.joinpath(job_id)
@@ -302,20 +308,24 @@ class ORFaqsProteinQuery(ORFaqsApp):
         if remove_workspace:
             ORFaqsProteinQuery._remove_workspace(workspace)
             return
+        #######################################################################
+        # Remove workspace table
+        if remove_table:
+            ORFaqsProteinQuery._remove_table(
+                workspace=workspace,
+                table_name=table_name,
+            )
+            return
 
         #######################################################################
         # Load proteins...
-        if load_proteins:
-            if kwargs.get('discovered_proteins') is not None:
-                ORFaqsProteinQuery._load_discovered_proteins(
-                    workspace=workspace,
-                    **kwargs,
-                )
-            elif kwargs.get('reference_proteins') is not None:
-                ORFaqsProteinQuery._load_reference_proteins(
-                    workspace=workspace,
-                    **kwargs,
-                )
+        if load_proteins is not None:
+            ORFaqsProteinQuery._load_proteins(
+                workspace=workspace,
+                table_name=table_name,
+                input_path=load_proteins,
+                **kwargs,
+            )
 
         #######################################################################
         # Export proteins conditions...
@@ -333,6 +343,7 @@ class ORFaqsProteinQuery(ORFaqsApp):
                 kwargs['export_file_path'] = export_file_path
             ORFaqsProteinQuery._export_proteins(
                 workspace=workspace,
+                table_name=table_name,
                 **kwargs,
             )
 

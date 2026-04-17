@@ -9,10 +9,10 @@ import pathlib
 import typing
 
 from orfaqs.apps.common.orfaqsproteindiscovery import (
+    ORFaqsProteinDiscoveryApi,
     RNAReadingFrame,
 )
 from orfaqs.apps.common.orfaqsrecords import (
-    ORFaqsDiscoveredProteinRecord,
     ORFaqsDiscoveredProteinRecordKeys,
     ORFaqsProteinRecord,
     ORFaqsRecordUtils,
@@ -122,22 +122,20 @@ class _ORFaqsReferenceProteinsTableFactory:
     TABLE_NAME = 'reference_proteins'
 
     @staticmethod
-    def define_table():
+    def define_table(table_name: str = None) -> str:
         """
         Defines the discovered_proteins table when called iff the table
         definition does NOT exists in the base class.
         """
-
-        if (
-            _ORFaqsReferenceProteinsTableFactory.TABLE_NAME
-            in BaseTable.metadata.tables
-        ):
+        if table_name is None:
+            table_name = _ORFaqsReferenceProteinsTableFactory.TABLE_NAME
+        if table_name in BaseTable.metadata.tables:
             return
 
         class _ORFaqsReferenceProteinsTable(BaseTable):
             """_ORFaqsReferenceProteinsTable"""
 
-            __tablename__ = _ORFaqsReferenceProteinsTableFactory.TABLE_NAME
+            __tablename__ = table_name
             UID_MAX_CHAR_LENGTH = 64
 
             @staticmethod
@@ -168,6 +166,8 @@ class _ORFaqsReferenceProteinsTableFactory:
                 comment=_ORFaqsProteinTableUtils.protein_length_comment(),
             )
 
+        return table_name
+
 
 class _ORFaqsDiscoveredProteinsTableFactory:
     """_ORFaqsDiscoveredProteinsTableUtil"""
@@ -175,21 +175,20 @@ class _ORFaqsDiscoveredProteinsTableFactory:
     TABLE_NAME = 'discovered_proteins'
 
     @staticmethod
-    def define_table():
+    def define_table(table_name: str = None) -> str:
         """
         Defines the discovered_proteins table when called iff the table
         definition does NOT exists in the base class.
         """
-        if (
-            _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
-            in BaseTable.metadata.tables
-        ):
+        if table_name is None:
+            table_name = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
+        if table_name in BaseTable.metadata.tables:
             return
 
         class ORFaqsDiscoveredProteinsTable(BaseTable):
             """ORFaqsDiscoveredProteinTable"""
 
-            __tablename__ = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
+            __tablename__ = table_name
             UID_MAX_CHAR_LENGTH = 64
             SOURCE_UID_MAX_CHAR_LENGTH = 64
             STRAND_TYPE_MAX_CHAR_LENGTH = 32
@@ -250,6 +249,8 @@ class _ORFaqsDiscoveredProteinsTableFactory:
                 comment=_ORFaqsProteinTableUtils.protein_length_comment(),
             )
 
+        return table_name
+
 
 class ORFaqsProteinQueryApi:
     """ORFaqsProteinQueryApi"""
@@ -293,7 +294,7 @@ class ORFaqsProteinQueryApi:
         ORFaqsProteinQueryApi.set_database(workspace)
 
     @staticmethod
-    def table() -> str:
+    def default_table() -> str:
         return _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
 
     @staticmethod
@@ -310,20 +311,28 @@ class ORFaqsProteinQueryApi:
         _database_connection_options.port = port
 
     @staticmethod
-    def _create_orfaqs_discovered_proteins_table():
-        _ORFaqsDiscoveredProteinsTableFactory.define_table()
+    def _create_orfaqs_discovered_proteins_table(
+        table_name: str = None,
+    ) -> str:
+        table_name = _ORFaqsDiscoveredProteinsTableFactory.define_table(
+            table_name
+        )
         PostgresDatabaseUtils.create_table(
             BaseTable,
             _database_connection_options,
         )
+        return table_name
 
     @staticmethod
-    def _create_orfaqs_reference_proteins_table():
-        _ORFaqsReferenceProteinsTableFactory.define_table()
+    def _create_orfaqs_reference_proteins_table(table_name: str = None) -> str:
+        table_name = _ORFaqsReferenceProteinsTableFactory.define_table(
+            table_name
+        )
         PostgresDatabaseUtils.create_table(
             BaseTable,
             _database_connection_options,
         )
+        return table_name
 
     @staticmethod
     def _create_uid(
@@ -400,72 +409,34 @@ class ORFaqsProteinQueryApi:
         PostgresDatabaseUtils.drop_database(workspace)
 
     @staticmethod
-    def load_discovered_proteins(
+    def remove_table(
         workspace: str,
-        input_path: (str | os.PathLike),
+        table_name: str = None,
     ):
-        """
-        Reads the contents of the file or directory path provided and loads the
-        data into the defined database. If the provided path is a directory, it
-        must contain the file ORFaqsProteinDiscoveryUtils.exported_file_name()
+        if table_name is None:
+            table_name = ORFaqsProteinQueryApi.default_table()
 
-        Attempts to load data are only made if data checks are passed.
-        Otherwise, the process is aborted and no data is available.
+        ORFaqsProteinQueryApi.set_workspace(workspace)
+        PostgresDatabaseUtils.drop_table(
+            table=table_name,
+            connection_options=_database_connection_options,
+        )
 
-        ---------
-        Arguments
-        ---------
-        workspace (str):
-            The name of the workspace session to load the discovered proteins.
-            Workspaces persist until they are removed by the calling
-            application.
-
-        input_path (str | os.PathLike):
-            A file or directory path to discovered proteins.
-        """
-        #######################################################################
-        # Gather all discovery files.
-        input_file_paths: list[pathlib.Path] = []
-        if DirectoryUtils.is_file(input_path):
-            input_file_paths.append(input_path)
-
-        elif DirectoryUtils.is_directory(input_path):
-            # Grab all files from the directory. In discoveries involving
-            # multiple genes, discovery files will be organized in
-            # subdirectories.
-            input_file_paths = DirectoryUtils.glob_files(
-                input_path, recursive=True
-            )
-
-        discovered_proteins_files: list[os.PathLike] = []
-        for file_path in input_file_paths:
-            # Validate the file paths...
-            try:
-                proteins_dataframe = PandasUtils.read_file_as_dataframe(
-                    file_path
-                )
-                for record_key in ORFaqsDiscoveredProteinRecord.keys():
-                    if record_key not in proteins_dataframe.columns:
-                        continue
-            except ValueError:
-                continue
-            discovered_proteins_files.append(file_path)
-
-        if len(discovered_proteins_files) == 0:
-            message = (
-                '[INFO] No protein discovery files were found.\n'
-                '(debug) ->\n'
-                f'\tinput_path: {input_path}'
-            )
-            _logger.info(message)
-            print(message)
-            return
-
+    @staticmethod
+    def _load_discovered_proteins(
+        workspace: str,
+        table_name: str,
+        discovered_proteins_files: list[pathlib.Path],
+    ):
         #######################################################################
         # Load all discovered proteins into the default database.
         # 1. Ensure the desired database and tables exist.
         ORFaqsProteinQueryApi.create_workspace(workspace)
-        ORFaqsProteinQueryApi._create_orfaqs_discovered_proteins_table()
+        table_name = (
+            ORFaqsProteinQueryApi._create_orfaqs_discovered_proteins_table(
+                table_name
+            )
+        )
 
         # 2. Connect the the workspace database.
         database_connection = PostgresDatabaseUtils.connect(
@@ -481,66 +452,26 @@ class ORFaqsProteinQueryApi:
             )
             PostgresDatabaseUtils.insert_from_dataframe(
                 connection=database_connection,
-                table=_ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME,
+                table=table_name,
                 dataframe=proteins_dataframe,
                 insert_method='append',
             )
 
     @staticmethod
-    def load_reference_proteins(
+    def _load_fasta_proteins(
         workspace: str,
-        input_path: (str | os.PathLike),
+        table_name: str,
+        fasta_protein_files: list[pathlib.Path],
     ):
-        """
-        Reads the contents of the file or directory path provided and loads the
-        data into the defined database. If the provided path is a directory, it
-        must contain the file ORFaqsProteinDiscoveryUtils.exported_file_name()
-
-        Attempts to load data are only made if data checks are passed.
-        Otherwise, the process is aborted and no data is available.
-
-        ---------
-        Arguments
-        ---------
-        workspace (str):
-            The name of the workspace session to load the discovered proteins.
-            Workspaces persist until they are removed by the calling
-            application.
-
-        input_path (str | os.PathLike):
-            A file or directory path to discovered proteins.
-        """
-        #######################################################################
-        # Gather all discovery files.
-        input_file_paths: list[os.PathLike] = []
-        if DirectoryUtils.is_file(input_path):
-            input_file_paths.append(input_path)
-        elif DirectoryUtils.is_directory(input_path):
-            # Grab all files from the directory.
-            input_file_paths = DirectoryUtils.glob_files(
-                input_path, recursive=True
-            )
-
-        fasta_files: list[os.PathLike] = []
-        for file_path in input_file_paths:
-            if FASTAUtils.is_fasta_file(file_path):
-                fasta_files.append(file_path)
-
-        if len(fasta_files) == 0:
-            message = (
-                '[INFO] No protein FASTA files were found.\n'
-                '(debug) ->\n'
-                f'\tinput_path: {input_path}'
-            )
-            _logger.info(message)
-            print(message)
-            return
-
         #######################################################################
         # Load all fasta proteins into the default database.
         # 1. Ensure the desired database and tables exist.
         ORFaqsProteinQueryApi.create_workspace(workspace)
-        ORFaqsProteinQueryApi._create_orfaqs_reference_proteins_table()
+        table_name = (
+            ORFaqsProteinQueryApi._create_orfaqs_reference_proteins_table(
+                table_name
+            )
+        )
 
         # 2. Connect the the workspace database.
         database_connection = PostgresDatabaseUtils.connect(
@@ -549,7 +480,7 @@ class ORFaqsProteinQueryApi:
 
         # 3. Load all the result files into memory and write them to the
         # database table.
-        for file_path in fasta_files:
+        for file_path in fasta_protein_files:
             fasta_sequences = FASTAUtils.parse_file(file_path)
             protein_records: list[ORFaqsProteinRecord] = []
             for sequence in fasta_sequences:
@@ -566,18 +497,81 @@ class ORFaqsProteinQueryApi:
             )
             PostgresDatabaseUtils.insert_from_dataframe(
                 connection=database_connection,
-                table=_ORFaqsReferenceProteinsTableFactory.TABLE_NAME,
+                table=table_name,
                 dataframe=records_dataframe,
                 insert_method='append',
             )
 
     @staticmethod
+    def load_proteins(
+        workspace: str,
+        table_name: str,
+        input_path: (str | os.PathLike),
+    ):
+        """
+        Reads the contents of the file or directory path provided and loads the
+        data into the defined database.
+
+        Attempts to load data are only made if data checks are passed.
+        Otherwise, the process is aborted and no data is available.
+
+        ---------
+        Arguments
+        ---------
+        workspace (str):
+            The name of the workspace session to load the discovered proteins.
+            Workspaces persist until they are removed by the calling
+            application.
+
+        table (str):
+            The name of the workspace session to load the discovered proteins.
+            Workspaces persist until they are removed by the calling
+            application.
+
+        input_path (str | os.PathLike):
+            A file or directory path to discovered proteins or FASTA files.
+        """
+        discovered_proteins_files = (
+            ORFaqsProteinDiscoveryApi.find_discovered_protein_files(input_path)
+        )
+        if len(discovered_proteins_files) > 0:
+            ORFaqsProteinQueryApi._load_discovered_proteins(
+                workspace=workspace,
+                table_name=table_name,
+                discovered_proteins_files=discovered_proteins_files,
+            )
+            return
+
+        fasta_protein_files = FASTAUtils.find_fasta_files(input_path)
+        if len(fasta_protein_files) > 0:
+            ORFaqsProteinQueryApi._load_fasta_proteins(
+                workspace=workspace,
+                table_name=table_name,
+                fasta_protein_files=fasta_protein_files,
+            )
+            return
+
+        message = (
+            '[INFO] No protein files were found in the given '
+            'file/directory path.\n'
+            '(debug) ->\n'
+            f'\tinput_path: {input_path}'
+        )
+        _logger.info(message)
+        print(message)
+
+    @staticmethod
     def export_proteins(
         workspace: str,
-        file_path: (str | os.PathLike),
+        table_name: str = None,
+        export_path: (str | os.PathLike) = None,
         export_format: _ExportFormatOptions = None,
         query_condition: str = None,
     ):
+        if table_name is None:
+            table_name = ORFaqsProteinQueryApi.default_table()
+        if export_path is None:
+            export_path = './'
         if export_format is None:
             export_format = ORFaqsProteinQueryApi.default_export_format()
 
@@ -586,7 +580,7 @@ class ORFaqsProteinQueryApi:
             _database_connection_options
         )
 
-        query = f'SELECT * FROM {ORFaqsProteinQueryApi.table()}'
+        query = f'SELECT * FROM {table_name}'
         if isinstance(query_condition, str):
             query += f' {query_condition}'
 
@@ -596,7 +590,7 @@ class ORFaqsProteinQueryApi:
         )
         ORFaqsProteinQueryApi._prepare_dataframe_for_export(results_dataframe)
         PandasUtils.export_dataframe(
-            file_path=file_path,
+            file_path=export_path,
             dataframe=results_dataframe,
             export_format=export_format,
         )

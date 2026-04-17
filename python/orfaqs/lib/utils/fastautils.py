@@ -5,6 +5,7 @@ FASTA Utils
 import enum
 import logging
 import os
+import pathlib
 import re
 
 from orfaqs.lib.core.proteins import Protein
@@ -155,6 +156,26 @@ class FASTAUtils:
         return (len(line_str) > 0) and (
             line_str[0] == FASTASequence.SEQUENCE_IDENTIFIER_DELIM
         )
+
+    @staticmethod
+    def find_fasta_files(input_path: str | os.PathLike) -> list[pathlib.Path]:
+        #######################################################################
+        # Gather all FASTA files.
+        input_file_paths: list[os.PathLike] = []
+        if DirectoryUtils.is_file(input_path):
+            input_file_paths.append(input_path)
+        elif DirectoryUtils.is_directory(input_path):
+            # Grab all files from the directory.
+            input_file_paths = DirectoryUtils.glob_files(
+                input_path, recursive=True
+            )
+
+        fasta_files: list[os.PathLike] = []
+        for file_path in input_file_paths:
+            if FASTAUtils.is_fasta_file(file_path):
+                fasta_files.append(file_path)
+
+        return fasta_files
 
     @staticmethod
     def parse_file(file_path: str | os.PathLike) -> list[FASTASequence]:
