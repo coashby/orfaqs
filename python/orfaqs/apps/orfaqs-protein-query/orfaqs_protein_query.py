@@ -3,11 +3,9 @@
 ORFaqs Protein Analysis
 """
 
-import enum
 import logging
 import os
 
-from enum import Enum
 
 from orfaqs.apps.common.cliutils import CliUtil
 from orfaqs.apps.common.orfaqsapp import ORFaqsApp
@@ -15,15 +13,9 @@ from orfaqs.apps.common.orfaqsproteinquery import ORFaqsProteinQueryApi
 
 
 from orfaqs.lib.utils.directoryutils import DirectoryUtils
-from orfaqs.lib.utils.perfutils import PerfProfiler
+
 
 _logger = logging.getLogger(__name__)
-
-_perf_profiler = PerfProfiler(__name__)
-
-
-class _ProfilingFunctionName(Enum):
-    PROTEIN_ANALYSIS_USER_QUERY = enum.auto()
 
 
 class ORFaqsProteinQuery(ORFaqsApp):

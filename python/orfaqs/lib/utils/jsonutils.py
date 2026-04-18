@@ -75,32 +75,33 @@ class JsonUtils:
     ) -> any:
         json_contents = None
 
+        def _log_error(error: Exception):
+            message = (
+                f'[ERROR: {error}] '
+                f'An exception occurred while reading from: "{json_input}"'
+            )
+            _logger.error(message)
+
+        error: Exception = None
         if DirectoryUtils.is_file(json_input):
             try:
                 with open(json_input, 'r', encoding='utf-8') as i_file:
                     json_contents = json.load(i_file)
-            except IOError as error:
-                message = (
-                    '[ERROR: IOError] '
-                    f'An exception occurred while reading from: "{json_input}"'
-                )
-                _logger.info(message)
-                _logger.error(error)
-                if raise_exceptions:
-                    raise error
-            except JSONDecodeError as error:
-                message = (
-                    f'[ERROR: JSONDecodeError] {error}'
-                    f'An exception occurred while reading from: "{json_input}"'
-                )
-                _logger.error(message)
-
-                if raise_exceptions:
-                    raise error
+            except IOError as e:
+                error = e
+            except JSONDecodeError as e:
+                error = e
         else:
-            json_contents = JsonUtils.read_json_str(
-                json_input, raise_exceptions
-            )
+            try:
+                json_contents = JsonUtils.read_json_str(
+                    json_input, raise_exceptions
+                )
+            except TypeError as e:
+                error = e
+
+        if error is not None and raise_exceptions:
+            _log_error(error)
+            raise error
 
         return json_contents
 
