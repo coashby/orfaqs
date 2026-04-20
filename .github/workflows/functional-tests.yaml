@@ -28,7 +28,7 @@ jobs:
         python-version: '3.12'
     - name: Set PYTHONPATH in GitHub actions environment
       run: |
-        echo 'PYTHONPATH=./python' >> $GITHUB_ENV
+        echo 'PYTHONPATH=./orfaqs' >> $GITHUB_ENV
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
