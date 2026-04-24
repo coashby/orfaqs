@@ -4,6 +4,7 @@ Directory Utils
 
 import os
 import pathlib
+import re
 import shutil
 
 
@@ -17,6 +18,10 @@ class DirectoryUtils:
     @staticmethod
     def is_file(path) -> bool:
         return pathlib.Path(path).is_file()
+
+    @staticmethod
+    def has_suffix(path) -> bool:
+        return len(pathlib.Path(path).suffix) > 0
 
     @staticmethod
     def current_directory_path() -> pathlib.Path:
@@ -94,3 +99,19 @@ class DirectoryUtils:
                 break
 
         return output_path
+
+    @staticmethod
+    def sanitize_path(path) -> pathlib.Path:
+        path = pathlib.Path(path)
+
+        def _sanitize_name(name: str) -> str:
+            return re.sub(r'[<>:"/\\|?*]', '', name)
+
+        clean_path = pathlib.Path(path.root)
+        path_parts = path.parts
+        if len(path.root) > 0:
+            path_parts = path_parts[1:]
+        for sub_path_name in path_parts:
+            clean_path = clean_path / _sanitize_name(sub_path_name)
+
+        return clean_path

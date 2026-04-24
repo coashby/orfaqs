@@ -65,6 +65,10 @@ class Sequence(abc.ABC):
         return self._sequence_str == rhs_sequence_str
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @property
     def sequence_str(self) -> str:
         return self._sequence_str
 

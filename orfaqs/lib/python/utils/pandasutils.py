@@ -8,6 +8,7 @@ import pandas as pd
 import pathlib
 import typing
 
+from datascroller import scroll
 from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
 
 _logger = logging.getLogger(__name__)
@@ -72,6 +73,7 @@ class PandasUtils:
         index_label: str = None,
     ) -> pathlib.Path:
         file_path = DirectoryUtils.make_path_object(file_path)
+        DirectoryUtils.mkdir_path(file_path.parent)
         if include_index and index_label is None:
             index_label = 'index'
         if DataFrameExportFormat.CSV in export_format:
@@ -92,3 +94,7 @@ class PandasUtils:
                 index=include_index,
             )
         return file_path
+
+    @staticmethod
+    def print_dataframe(dataframe: pd.DataFrame):
+        scroll(dataframe)

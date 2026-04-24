@@ -11,7 +11,7 @@ import typing
 
 from orfaqs.modules.python.common.orfaqsapi import ORFaqsApi
 
-from orfaqs.modules.python.proteindiscovery.orfaqsproteindiscovery import (
+from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import (
     ORFaqsProteinDiscoveryApi,
     RNAReadingFrame,
 )
@@ -48,13 +48,14 @@ _AVAILABLE_EXPORT_FORMATS: list[str] = [
     format for format in _ExportFormatOptions.__args__
 ]
 
-_ORFAQS_PROTEIN_QUERY_DATABASE = 'orfaqs_protein_query'
+_ORFAQS_PROTEIN_QUERY_DEFAULT_DATABASE = 'orfaqs_protein_query'
+_ORFAQS_PROTEIN_QUERY_DEFAULT_TABLE = 'proteins'
 # Global database connection options enable user defined options to persist
 # during the entirety of a session.
 _database_connection_options = (
     PostgresDatabaseUtils.default_database_connection_options()
 )
-_database_connection_options.database = _ORFAQS_PROTEIN_QUERY_DATABASE
+_database_connection_options.database = _ORFAQS_PROTEIN_QUERY_DEFAULT_DATABASE
 
 
 class ORFaqsDiscoveredProteinTableSchema(ORFaqsDiscoveredProteinRecordKeys):
@@ -118,23 +119,23 @@ class _ORFaqsProteinTableType(enum.Enum):
 class _ORFaqsDiscoveredProteinsTableFactory:
     """_ORFaqsDiscoveredProteinsTableUtil"""
 
-    TABLE_NAME = 'discovered_proteins'
+    table = 'discovered_proteins'
 
     @staticmethod
-    def define_table(table_name: str = None) -> str:
+    def define_table(table: str = None) -> str:
         """
         Defines the discovered_proteins table when called iff the table
         definition does NOT exists in the base class.
         """
-        if table_name is None:
-            table_name = _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
-        if table_name in BaseTable.metadata.tables:
+        if table is None:
+            table = _ORFaqsDiscoveredProteinsTableFactory.table
+        if table in BaseTable.metadata.tables:
             return
 
         class ORFaqsDiscoveredProteinsTable(BaseTable):
             """ORFaqsDiscoveredProteinTable"""
 
-            __tablename__ = table_name
+            __tablename__ = table
             UID_MAX_CHAR_LENGTH = 64
             SOURCE_UID_MAX_CHAR_LENGTH = 64
             STRAND_TYPE_MAX_CHAR_LENGTH = 32
@@ -195,29 +196,29 @@ class _ORFaqsDiscoveredProteinsTableFactory:
                 comment=_ORFaqsProteinTableUtils.protein_length_comment(),
             )
 
-        return table_name
+        return table
 
 
 class _ORFaqsReferenceProteinsTableFactory:
     """_ORFaqsReferenceProteinsTableFactory"""
 
-    TABLE_NAME = 'reference_proteins'
+    table = 'reference_proteins'
 
     @staticmethod
-    def define_table(table_name: str = None) -> str:
+    def define_table(table: str = None) -> str:
         """
         Defines the discovered_proteins table when called iff the table
         definition does NOT exists in the base class.
         """
-        if table_name is None:
-            table_name = _ORFaqsReferenceProteinsTableFactory.TABLE_NAME
-        if table_name in BaseTable.metadata.tables:
+        if table is None:
+            table = _ORFaqsReferenceProteinsTableFactory.table
+        if table in BaseTable.metadata.tables:
             return
 
         class _ORFaqsReferenceProteinsTable(BaseTable):
             """_ORFaqsReferenceProteinsTable"""
 
-            __tablename__ = table_name
+            __tablename__ = table
             UID_MAX_CHAR_LENGTH = 64
 
             @staticmethod
@@ -248,7 +249,7 @@ class _ORFaqsReferenceProteinsTableFactory:
                 comment=_ORFaqsProteinTableUtils.protein_length_comment(),
             )
 
-        return table_name
+        return table
 
 
 class ORFaqsProteinQueryApi(ORFaqsApi):
@@ -283,7 +284,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
 
     @staticmethod
     def default_database():
-        return _ORFAQS_PROTEIN_QUERY_DATABASE
+        return _ORFAQS_PROTEIN_QUERY_DEFAULT_DATABASE
 
     @staticmethod
     def set_database(database: str):
@@ -291,12 +292,16 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         _database_connection_options.database = database
 
     @staticmethod
+    def default_workspace():
+        return ORFaqsProteinQueryApi.default_database()
+
+    @staticmethod
     def set_workspace(workspace: str):
         ORFaqsProteinQueryApi.set_database(workspace)
 
     @staticmethod
     def default_table() -> str:
-        return _ORFaqsDiscoveredProteinsTableFactory.TABLE_NAME
+        return _ORFAQS_PROTEIN_QUERY_DEFAULT_TABLE
 
     @staticmethod
     def configure_database(
@@ -313,27 +318,23 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
 
     @staticmethod
     def _create_orfaqs_discovered_proteins_table(
-        table_name: str = None,
+        table: str = None,
     ) -> str:
-        table_name = _ORFaqsDiscoveredProteinsTableFactory.define_table(
-            table_name
-        )
+        table = _ORFaqsDiscoveredProteinsTableFactory.define_table(table)
         PostgresDatabaseUtils.create_table(
             BaseTable,
             _database_connection_options,
         )
-        return table_name
+        return table
 
     @staticmethod
-    def _create_orfaqs_reference_proteins_table(table_name: str = None) -> str:
-        table_name = _ORFaqsReferenceProteinsTableFactory.define_table(
-            table_name
-        )
+    def _create_orfaqs_reference_proteins_table(table: str = None) -> str:
+        table = _ORFaqsReferenceProteinsTableFactory.define_table(table)
         PostgresDatabaseUtils.create_table(
             BaseTable,
             _database_connection_options,
         )
-        return table_name
+        return table
 
     @staticmethod
     def _create_uid(
@@ -438,6 +439,16 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         return sorted(workspace_tables)
 
     @staticmethod
+    def all_managed_workspaces_and_tables() -> dict[str, list[str]]:
+        workspaces_tables_map: dict[str, list[str]] = {}
+        for workspace in ORFaqsProteinQueryApi.managed_workspaces():
+            workspaces_tables_map[workspace] = (
+                ORFaqsProteinQueryApi.managed_workspace_tables(workspace)
+            )
+
+        return workspaces_tables_map
+
+    @staticmethod
     def _update_session_workspaces(workspaces_dict: dict[str, list]):
         new_session_data: dict = {
             ORFaqsProteinQueryApi._SESSION_DATA_WORKSPACES_KEY: workspaces_dict
@@ -449,7 +460,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
     @staticmethod
     def _add_record_to_session_data(
         workspace: str,
-        table_name: str = None,
+        table: str = None,
     ):
         workspaces_dict: dict[str, list] = (
             ORFaqsProteinQueryApi._get_current_session_workspaces()
@@ -457,10 +468,10 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         if workspace not in workspaces_dict:
             workspaces_dict[workspace] = []
 
-        if table_name is not None:
+        if table is not None:
             workspace_tables: list = workspaces_dict[workspace]
-            if table_name not in workspace_tables:
-                workspace_tables.append(table_name)
+            if table not in workspace_tables:
+                workspace_tables.append(table)
 
             workspaces_dict[workspace] = sorted(workspace_tables)
 
@@ -469,12 +480,12 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
     @staticmethod
     def _remove_record_from_session_data(
         workspace: str,
-        table_name: str = None,
+        table: str = None,
     ):
         workspaces_dict: dict[str, list] = (
             ORFaqsProteinQueryApi._get_current_session_workspaces()
         )
-        if table_name is None:
+        if table is None:
             try:
                 del workspaces_dict[workspace]
             except ValueError:
@@ -482,7 +493,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         else:
             try:
                 workspace_tables: list = workspaces_dict[workspace]
-                workspace_tables.remove(table_name)
+                workspace_tables.remove(table)
                 workspaces_dict[workspace] = sorted(workspace_tables)
             except ValueError:
                 return
@@ -498,30 +509,30 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
     @staticmethod
     def _create_orfaqs_protein_table(
         workspace: str,
-        table_name: str,
+        table: str,
         table_type: _ORFaqsProteinTableType,
     ) -> str:
         ORFaqsProteinQueryApi.set_workspace(workspace)
         PostgresDatabaseUtils.create_database(_database_connection_options)
         if _ORFaqsProteinTableType.DISCOVERED_PROTEINS == table_type:
-            table_name = (
+            table = (
                 ORFaqsProteinQueryApi._create_orfaqs_discovered_proteins_table(
-                    table_name
+                    table
                 )
             )
         elif _ORFaqsProteinTableType.REFERENCE_PROTEINS == table_type:
-            table_name = (
+            table = (
                 ORFaqsProteinQueryApi._create_orfaqs_reference_proteins_table(
-                    table_name
+                    table
                 )
             )
 
         ORFaqsProteinQueryApi._add_record_to_session_data(
             workspace=workspace,
-            table_name=table_name,
+            table=table,
         )
 
-        return table_name
+        return table
 
     @staticmethod
     def remove_workspace(workspace: str):
@@ -535,41 +546,54 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         )
 
     @staticmethod
+    def remove_all_managed_workspaces():
+        for workspace in ORFaqsProteinQueryApi.managed_workspaces():
+            ORFaqsProteinQueryApi.remove_workspace(workspace)
+
+    @staticmethod
     def remove_table(
         workspace: str,
-        table_name: str = None,
+        table: str = None,
     ):
-        if table_name is None:
-            table_name = ORFaqsProteinQueryApi.default_table()
+        if table is None:
+            table = ORFaqsProteinQueryApi.default_table()
 
         # Only remove managed workspace tables.
         managed_tables = ORFaqsProteinQueryApi.managed_workspace_tables(
             workspace
         )
-        if table_name not in managed_tables:
+        if table not in managed_tables:
             return
         ORFaqsProteinQueryApi.set_workspace(workspace)
         PostgresDatabaseUtils.drop_table(
-            table=table_name,
+            table=table,
             connection_options=_database_connection_options,
         )
         ORFaqsProteinQueryApi._remove_record_from_session_data(
             workspace=workspace,
-            table_name=table_name,
+            table=table,
         )
+
+    @staticmethod
+    def remove_all_managed_tables(workspace: str):
+        for table in ORFaqsProteinQueryApi.managed_workspace_tables(workspace):
+            ORFaqsProteinQueryApi.remove_table(
+                workspace=workspace,
+                table=table,
+            )
 
     @staticmethod
     def _load_discovered_proteins(
         workspace: str,
-        table_name: str,
+        table: str,
         discovered_proteins_files: list[pathlib.Path],
     ):
         #######################################################################
         # Load all discovered proteins into the default database.
         # 1. Ensure the desired database and tables exist.
-        table_name = ORFaqsProteinQueryApi._create_orfaqs_protein_table(
+        table = ORFaqsProteinQueryApi._create_orfaqs_protein_table(
             workspace=workspace,
-            table_name=table_name,
+            table=table,
             table_type=_ORFaqsProteinTableType.DISCOVERED_PROTEINS,
         )
 
@@ -587,7 +611,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
             )
             PostgresDatabaseUtils.insert_from_dataframe(
                 connection=database_connection,
-                table=table_name,
+                table=table,
                 dataframe=proteins_dataframe,
                 insert_method='append',
             )
@@ -595,15 +619,15 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
     @staticmethod
     def _load_fasta_proteins(
         workspace: str,
-        table_name: str,
+        table: str,
         fasta_protein_files: list[pathlib.Path],
     ):
         #######################################################################
         # Load all fasta proteins into the default database.
         # 1. Ensure the desired database and tables exist.
-        table_name = ORFaqsProteinQueryApi._create_orfaqs_protein_table(
+        table = ORFaqsProteinQueryApi._create_orfaqs_protein_table(
             workspace=workspace,
-            table_name=table_name,
+            table=table,
             table_type=_ORFaqsProteinTableType.REFERENCE_PROTEINS,
         )
 
@@ -631,16 +655,16 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
             )
             PostgresDatabaseUtils.insert_from_dataframe(
                 connection=database_connection,
-                table=table_name,
+                table=table,
                 dataframe=records_dataframe,
                 insert_method='append',
             )
 
     @staticmethod
     def load_proteins(
-        workspace: str,
-        table_name: str,
         input_path: (str | os.PathLike),
+        workspace: str = None,
+        table: str = None,
     ):
         """
         Reads the contents of the file or directory path provided and loads the
@@ -665,13 +689,17 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         input_path (str | os.PathLike):
             A file or directory path to discovered proteins or FASTA files.
         """
+        if workspace is None:
+            workspace = ORFaqsProteinQueryApi.default_workspace()
+        if table is None:
+            table = ORFaqsProteinQueryApi.default_table()
         discovered_proteins_files = (
             ORFaqsProteinDiscoveryApi.find_discovered_protein_files(input_path)
         )
         if len(discovered_proteins_files) > 0:
             ORFaqsProteinQueryApi._load_discovered_proteins(
                 workspace=workspace,
-                table_name=table_name,
+                table=table,
                 discovered_proteins_files=discovered_proteins_files,
             )
             return
@@ -680,7 +708,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         if len(fasta_protein_files) > 0:
             ORFaqsProteinQueryApi._load_fasta_proteins(
                 workspace=workspace,
-                table_name=table_name,
+                table=table,
                 fasta_protein_files=fasta_protein_files,
             )
             return
@@ -695,36 +723,118 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         print(message)
 
     @staticmethod
-    def export_proteins(
-        workspace: str,
-        table_name: str = None,
-        export_path: (str | os.PathLike) = None,
-        export_format: _ExportFormatOptions = None,
-        query_condition: str = None,
-    ):
-        if table_name is None:
-            table_name = ORFaqsProteinQueryApi.default_table()
-        if export_path is None:
-            export_path = './'
-        if export_format is None:
-            export_format = ORFaqsProteinQueryApi.default_export_format()
+    def query_proteins(
+        query: str = None,
+        workspace: str = None,
+        table: str = None,
+    ) -> pd.DataFrame:
+        if query is None and table is None:
+            message = (
+                '[ERROR] A valid query OR a table name must be specified.'
+            )
+            _logger.error(message)
+            raise ValueError(message)
 
+        if workspace is None:
+            workspace = ORFaqsProteinQueryApi.default_workspace()
         ORFaqsProteinQueryApi.set_workspace(workspace)
         database_connection = PostgresDatabaseUtils.connect(
             _database_connection_options
         )
 
-        query = f'SELECT * FROM {table_name}'
-        if isinstance(query_condition, str):
-            query += f' {query_condition}'
+        if query is None:
+            query = ''
 
+        if 'select' not in query.lower() and table is not None:
+            query = f'SELECT * FROM {table} {query}'
+
+        query = query.rstrip()
         results_dataframe = pd.read_sql(
             sql=query,
             con=database_connection,
         )
-        ORFaqsProteinQueryApi._prepare_dataframe_for_export(results_dataframe)
+
+        return results_dataframe
+
+    @staticmethod
+    def _export_dataframe(
+        file_path: (str | os.PathLike),
+        dataframe: pd.DataFrame,
+        export_format: _ExportFormatOptions = None,
+    ):
+        ORFaqsProteinQueryApi._prepare_dataframe_for_export(dataframe)
         PandasUtils.export_dataframe(
-            file_path=export_path,
+            file_path=file_path,
+            dataframe=dataframe,
+            export_format=export_format,
+        )
+
+    @staticmethod
+    def _export_proteins(
+        workspace: str,
+        table: str = None,
+        export_path: (str | os.PathLike) = None,
+        export_format: _ExportFormatOptions = None,
+        query: str = None,
+    ):
+        if export_path is None:
+            export_path = './'
+        if export_format is None:
+            export_format = ORFaqsProteinQueryApi.default_export_format()
+
+        results_dataframe = ORFaqsProteinQueryApi.query_proteins(
+            query,
+            workspace=workspace,
+            table=table,
+        )
+
+        export_file_path = export_path
+        # If an explicit file path is not specified, use the table name OR
+        # query as the file name for the export.
+        if not DirectoryUtils.has_suffix(export_file_path):
+            if workspace is not None:
+                export_file_path = export_file_path / workspace
+
+            if table is not None:
+                export_file_path = export_file_path / table
+
+            file_name = table
+            if query is not None:
+                file_name = DirectoryUtils.sanitize_path(
+                    query.replace(' ', '_')
+                )
+
+            export_file_path = export_file_path / file_name
+
+        ORFaqsProteinQueryApi._export_dataframe(
+            file_path=export_file_path,
             dataframe=results_dataframe,
             export_format=export_format,
         )
+
+    @staticmethod
+    def export_proteins(
+        workspace: str = None,
+        table: str = None,
+        export_path: (str | os.PathLike) = None,
+        export_format: _ExportFormatOptions = None,
+        query: str = None,
+    ):
+        if workspace is None:
+            workspace = ORFaqsProteinQueryApi.default_workspace()
+
+        export_tables: list[str] = [table]
+        if table is None and 'from' not in query.lower():
+            # Export all data from all tables within the workspace.
+            export_tables = ORFaqsProteinQueryApi.managed_workspace_tables(
+                workspace
+            )
+
+        for table in export_tables:
+            ORFaqsProteinQueryApi._export_proteins(
+                workspace=workspace,
+                table=table,
+                export_path=export_path,
+                export_format=export_format,
+                query=query,
+            )
