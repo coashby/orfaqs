@@ -1,6 +1,6 @@
 # Discover Proteins with ORFaqs
 ORFaqs Protein Discovery processes genomic sequences and provides you with a
-list of all possible proteins. The tool does models some biological aspects
+list of all possible proteins. The tool does model some biological aspects
 of the converting genomic sequences into representative proteins
 (transcription, translation, ect.). However, it makes no effort to do so in a
 biologically plausible fashion.
@@ -11,7 +11,7 @@ relies on two basic parameters:
 - the reading frames in which translation occurs.
 
 With this approach, you are not constrained by what is *known*, but rather, you
-are encouraged to ask: *What is possible?*
+are encouraged to ask: *What is possible.*
 
 ## Using the CLI
 **Prerequisites**
@@ -54,7 +54,7 @@ orfaqs_protein_discovery -i ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTG
 ### Specifying the Exported Results Format
 The `export_format` option is used to control format of the discovered proteins
 results. The expected command line value for each supported format is given in
-the table below:
+the table below.
 | Export Format | Command Line Value | Export File Extension |
 |-|-|-|
 | **CSV** *(default option)* | `csv` |*.csv* |
@@ -133,24 +133,10 @@ for the corresponding sequence.
 `<OUTPUT_DIRECTORY>/<JOB_ID>/.orfaqs-apps/orfaqs-protein-discovery`.
 
 ### Output Files
-Outputs are presented in two ways:
-1. By reading frame
-1. As a complete set of results (data from all reading frames included)
-
-#### Outputs by Reading Frame
-Each reading frame specific output file name is formatted as:
-`discovered-proteins-reading-frame-<READING_FRAME>.<EXPORT_EXTENSION>` where:
-- `<READING_FRAME>`is the index 1, 2, or 3, corresponding to the reading
-frame used when the protein was found, and
-- `<EXPORT_EXTENSION>` corresponds to the extension used by the export format
-option selected (`csv`, `json`, or `xlsx`).
-
-If no proteins were found within a particular reading frame, then no output
-data are exported for that reading frame.
-
 #### All Discovered Proteins Outputs
 Results for all the proteins discoverd for a given sequence are formatted as:
-`discovered-proteins.<EXPORT_EXTENSION>` where:
+`<UID>-discovered-proteins.<EXPORT_EXTENSION>` where:
+- `<UID>` if provided, it is the ID associated with the particular sequence.
 - `<EXPORT_EXTENSION>` corresponds to the extension used by the export option
 selected (`csv`, `json`, or `xlsx`).
 
