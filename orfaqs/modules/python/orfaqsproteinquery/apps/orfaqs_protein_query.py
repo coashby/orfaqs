@@ -18,7 +18,6 @@ from orfaqs.modules.python.orfaqsproteinquery.orfaqsproteinquery import (
     _ExportFormatOptions,
     ORFaqsProteinQueryApi,
 )
-from orfaqs.lib.python.utils.jsonutils import JsonUtils
 from orfaqs.lib.python.utils.pandasutils import PandasUtils
 
 _logger = logging.getLogger(__name__)
@@ -36,9 +35,9 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         LOAD_PROTEINS = 'load-proteins'
         QUERY = 'query'
         EXPORT = 'export'
-        REMOVE_TABLE = 'remove-table'
+        REMOVE_TABLES = 'remove-tables'
+        REMOVE_WORKSPACES = 'remove-workspaces'
         SHOW = 'show'
-        REMOVE_WORKSPACE = 'remove-workspace'
 
     @staticmethod
     def program_name() -> str:
@@ -53,12 +52,18 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         return ORFaqsProteinQueryCli._DEFAULT_TABLE_NAME
 
     @staticmethod
-    def _workspace_annotation(parameter_type: Callable) -> tuple:
+    def _workspace_annotation(
+        parameter_type: Callable,
+        multiple: bool = False,
+    ) -> tuple:
+        workspace_str = 'workspace'
+        if multiple:
+            workspace_str = 'set of space separated workspaces'
         return (
             str,
             parameter_type(
                 help=(
-                    'The workspace (database) to use for the command. '
+                    f'The {workspace_str} to use for the command. '
                     'Workspace names must be alphanumeric [Aa-Zz, 0-9]. The '
                     'underscore character "_" is permitted. '
                 ),
@@ -66,11 +71,17 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         )
 
     @staticmethod
-    def _table_name_annotation(parameter_type: Callable) -> tuple:
+    def _table_name_annotation(
+        parameter_type: Callable,
+        multiple: bool = False,
+    ) -> tuple:
+        table_str = 'table'
+        if multiple:
+            table_str = 'set of space separated tables'
         return (
             str,
             parameter_type(
-                help=('The table to use for the command.'),
+                help=(f'The {table_str} to use for the command.'),
             ),
         )
 
@@ -97,9 +108,9 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             workspace = ORFaqsProteinQueryCli._DEFAULT_WORKSPACE
 
         ORFaqsProteinQueryApi.load_proteins(
+            proteins=proteins,
             workspace=workspace,
             table=table,
-            input_path=proteins,
         )
 
     @app.command(Commands.LOAD_PROTEINS.value)
@@ -137,27 +148,22 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         if workspace is None:
             workspace = ORFaqsProteinQueryCli.default_workspace()
 
-        if export_path is None and export_format is None:
-            query_result = ORFaqsProteinQueryApi.query_proteins(
-                query,
-                workspace=workspace,
-                table=table,
-            )
-            PandasUtils.print_dataframe(query_result)
-        else:
+        if export_path is None and export_format is not None:
             if export_path is None:
                 export_path = ORFaqsProteinQueryCli._create_output_directory(
                     output_directory=output_directory,
                     job_id=job_id,
                 )
 
-            ORFaqsProteinQueryApi.export_proteins(
-                workspace=workspace,
-                table=table,
-                export_path=export_path,
-                export_format=export_format,
-                query=query,
-            )
+        query_result = ORFaqsProteinQueryApi.query_proteins(
+            query=query,
+            workspace=workspace,
+            table=table,
+            export_path=export_path,
+            export_format=export_format,
+        )
+        if query_result is not None:
+            PandasUtils.print_dataframe(query_result)
 
     @app.command(Commands.QUERY.value)
     @staticmethod
@@ -238,15 +244,20 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         all_workspaces: bool = False,
         **kwargs,
     ):
-        if all_workspaces:
-            ORFaqsProteinQueryApi.remove_all_managed_workspaces()
-        else:
-            ORFaqsProteinQueryApi.remove_workspace(workspace)
+        ORFaqsProteinQueryApi.remove_workspaces(
+            workspaces=workspace,
+            all_workspaces=all_workspaces,
+        )
 
-    @app.command(Commands.REMOVE_WORKSPACE.value)
+    @app.command(Commands.REMOVE_WORKSPACES.value)
     @staticmethod
     def remove_workspace(
-        workspace: Annotated[_workspace_annotation(typer.Argument)] = None,
+        workspaces: Annotated[
+            _workspace_annotation(
+                typer.Argument,
+                multiple=True,
+            )
+        ] = None,
         all_workspaces: Annotated[
             bool,
             typer.Option(
@@ -268,23 +279,21 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
     @staticmethod
     def _remove_table(
         workspace: str,
-        table: str = None,
+        tables: str = None,
         all_tables: bool = False,
         **kwargs,
     ):
-        if all_tables:
-            ORFaqsProteinQueryApi.remove_all_managed_tables(workspace)
-        else:
-            ORFaqsProteinQueryApi.remove_table(
-                workspace=workspace,
-                table=table,
-            )
+        ORFaqsProteinQueryApi.remove_tables(
+            workspace=workspace,
+            tables=tables,
+            all_tables=all_tables,
+        )
 
-    @app.command(Commands.REMOVE_TABLE.value)
+    @app.command(Commands.REMOVE_TABLES.value)
     @staticmethod
     def remove_table(
         workspace: Annotated[_workspace_annotation(typer.Argument)] = None,
-        table: Annotated[_table_name_annotation(typer.Argument)] = None,
+        tables: Annotated[_table_name_annotation(typer.Argument)] = None,
         all_tables: Annotated[
             bool,
             typer.Option(
@@ -310,19 +319,11 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         all_workspaces_and_tables: bool = False,
         **kwargs,
     ):
-        results: dict[str, list[str]] = {}
-        if all_workspaces_and_tables:
-            results = ORFaqsProteinQueryApi.all_managed_workspaces_and_tables()
-        elif workspaces:
-            results['workspaces'] = ORFaqsProteinQueryApi.managed_workspaces()
-        elif workspace is not None:
-            results[workspace] = (
-                ORFaqsProteinQueryApi.managed_workspace_tables(workspace)
-            )
-
-        if results is not None:
-            results_json = JsonUtils.as_json_string(results)
-            print(results_json)
+        ORFaqsProteinQueryApi.show_managed_workspaces(
+            workspace=workspace,
+            workspaces=workspaces,
+            all_workspaces_and_tables=all_workspaces_and_tables,
+        )
 
     @app.command(Commands.SHOW.value)
     @staticmethod
@@ -369,9 +370,9 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             ORFaqsProteinQueryCli.query_proteins(**ctx.params)
         elif ORFaqsProteinQueryCli.Commands.EXPORT == cli_command:
             ORFaqsProteinQueryCli.export_proteins(**ctx.params)
-        elif ORFaqsProteinQueryCli.Commands.REMOVE_WORKSPACE == cli_command:
+        elif ORFaqsProteinQueryCli.Commands.REMOVE_WORKSPACES == cli_command:
             ORFaqsProteinQueryCli.remove_workspace(**ctx.params)
-        elif ORFaqsProteinQueryCli.Commands.REMOVE_TABLE == cli_command:
+        elif ORFaqsProteinQueryCli.Commands.REMOVE_TABLES == cli_command:
             ORFaqsProteinQueryCli.remove_table(**ctx.params)
         elif ORFaqsProteinQueryCli.Commands.SHOW == cli_command:
             ORFaqsProteinQueryCli.show(**ctx.params)
