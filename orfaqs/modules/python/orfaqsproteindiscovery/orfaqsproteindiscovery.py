@@ -144,7 +144,7 @@ class ORFaqsProteinDiscoveryApi:
         )
 
     @staticmethod
-    def _discover_proteins(
+    def _translate_all_orf(
         rna_sequence: RNASequence,
         reading_frames: list[RNAReadingFrame],
         start_codons: list[Codon],
@@ -177,7 +177,7 @@ class ORFaqsProteinDiscoveryApi:
         return reading_frame_proteins_map
 
     @staticmethod
-    def discover_proteins(
+    def discover_proteins_from_sequence(
         genomic_sequence: str | GenomicSequence,
         uid: str = None,
         strand_type: StrandType = None,
@@ -228,7 +228,7 @@ class ORFaqsProteinDiscoveryApi:
         # 1. Discover proteins for each reading frame in the give strand_type
         # direction.
         strand_type_protein_map[rna_sequence.strand_type] = (
-            ORFaqsProteinDiscoveryApi._discover_proteins(
+            ORFaqsProteinDiscoveryApi._translate_all_orf(
                 rna_sequence=rna_sequence,
                 reading_frames=reading_frames,
                 start_codons=start_codons,
@@ -241,7 +241,7 @@ class ORFaqsProteinDiscoveryApi:
         if include_reverse_complement:
             rna_sequence = NucleotideUtils.reverse_complement(rna_sequence)
             strand_type_protein_map[rna_sequence.strand_type] = (
-                ORFaqsProteinDiscoveryApi._discover_proteins(
+                ORFaqsProteinDiscoveryApi._translate_all_orf(
                     rna_sequence=rna_sequence,
                     reading_frames=reading_frames,
                     start_codons=start_codons,
@@ -311,7 +311,7 @@ class ORFaqsProteinDiscoveryApi:
                 strand_type=strand_type,
             )
 
-        return ORFaqsProteinDiscoveryApi.discover_proteins(
+        return ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
             genomic_sequence,
             uid=uid,
             include_reverse_complement=include_reverse_complement,
@@ -378,3 +378,48 @@ class ORFaqsProteinDiscoveryApi:
 
         print(f'Total number of proteins discovered: {total_protein_count}')
         return (discovered_proteins_maps, total_protein_count)
+
+    @staticmethod
+    def discover_proteins(
+        input_sequence: str | os.PathLike,
+        uid: str = None,
+        include_reverse_complement: bool = True,
+        output_directory: str | os.PathLike = None,
+        job_id: str = None,
+        export_format: str = None,
+        enable_gpu: bool = False,
+    ):
+        #######################################################################
+        # Create the local output directory path
+        if output_directory is None:
+            output_directory = './'
+
+        output_directory = DirectoryUtils.make_path_object(output_directory)
+        output_directory = output_directory.joinpath(
+            ORFaqsProteinDiscoveryApi.default_output_directory()
+        )
+        output_directory = DirectoryUtils.make_path_object(output_directory)
+        if isinstance(job_id, str):
+            output_directory = output_directory.joinpath(job_id)
+
+        DirectoryUtils.mkdir_path(output_directory)
+
+        if DirectoryUtils.is_file(input_sequence):
+            # Try processing as a FASTA file
+            ORFaqsProteinDiscoveryApi.process_fasta_file(
+                fasta_file_path=input_sequence,
+                include_reverse_complement=include_reverse_complement,
+                export_format=export_format,
+                output_directory=output_directory,
+                use_gpu=enable_gpu,
+            )
+        else:
+            # Try processing as an sequence string.
+            ORFaqsProteinDiscoveryApi.process_genomic_sequence(
+                genomic_sequence=input_sequence,
+                uid=uid,
+                include_reverse_complement=include_reverse_complement,
+                export_format=export_format,
+                output_directory=output_directory,
+                use_gpu=enable_gpu,
+            )

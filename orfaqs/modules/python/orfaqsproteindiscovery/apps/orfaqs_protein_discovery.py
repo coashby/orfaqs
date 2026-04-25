@@ -2,7 +2,6 @@
 
 import logging
 import multiprocessing
-import os
 import typer
 
 from typing import Annotated
@@ -16,8 +15,6 @@ from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import 
     ORFaqsProteinDiscoveryApi,
 )
 
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
-
 
 _logger = logging.getLogger(__name__)
 app = ORFaqsCli._new_app_typer()
@@ -30,54 +27,9 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
     def program_name():
         return 'ORFaqs Protein Discovery'
 
-    @staticmethod
-    def _discover_proteins(
-        input_sequence: str | os.PathLike,
-        uid: str = None,
-        include_reverse_complement: bool = True,
-        output_directory: str | os.PathLike = None,
-        job_id: str = None,
-        export_format: str = None,
-        enable_gpu: bool = False,
-    ):
-        #######################################################################
-        # Create the local output directory path
-        if output_directory is None:
-            output_directory = './'
-
-        output_directory = DirectoryUtils.make_path_object(output_directory)
-        output_directory = output_directory.joinpath(
-            ORFaqsProteinDiscoveryCli.default_output_directory()
-        )
-        output_directory = DirectoryUtils.make_path_object(output_directory)
-        if isinstance(job_id, str):
-            output_directory = output_directory.joinpath(job_id)
-
-        DirectoryUtils.mkdir_path(output_directory)
-
-        if DirectoryUtils.is_file(input_sequence):
-            # Try processing as a FASTA file
-            ORFaqsProteinDiscoveryApi.process_fasta_file(
-                fasta_file_path=input_sequence,
-                include_reverse_complement=include_reverse_complement,
-                export_format=export_format,
-                output_directory=output_directory,
-                use_gpu=enable_gpu,
-            )
-        else:
-            # Try processing as an sequence string.
-            ORFaqsProteinDiscoveryApi.process_genomic_sequence(
-                genomic_sequence=input_sequence,
-                uid=uid,
-                include_reverse_complement=include_reverse_complement,
-                export_format=export_format,
-                output_directory=output_directory,
-                use_gpu=enable_gpu,
-            )
-
     @app.callback(invoke_without_command=True)
     @staticmethod
-    def cli(
+    def discover_proteins(
         input_sequence: Annotated[
             str,
             typer.Argument(
@@ -131,8 +83,11 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
             raise typer.Exit(
                 ORFaqsCliExitCodes.ERROR_REQUIRED_INPUT_NOT_SPECIFIED
             )
-
-        ORFaqsProteinDiscoveryCli._discover_proteins(**ui_kwargs)
+        if ui_kwargs.get('output_directory') is None:
+            ui_kwargs['output_directory'] = (
+                ORFaqsProteinDiscoveryCli.default_output_directory()
+            )
+        ORFaqsProteinDiscoveryApi.discover_proteins(**ui_kwargs)
 
     @staticmethod
     def _run():
