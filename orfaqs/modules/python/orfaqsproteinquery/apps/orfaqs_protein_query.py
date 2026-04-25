@@ -251,7 +251,7 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
 
     @app.command(Commands.REMOVE_WORKSPACES.value)
     @staticmethod
-    def remove_workspace(
+    def remove_workspaces(
         workspaces: Annotated[
             _workspace_annotation(
                 typer.Argument,
@@ -291,7 +291,7 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
 
     @app.command(Commands.REMOVE_TABLES.value)
     @staticmethod
-    def remove_table(
+    def remove_tables(
         workspace: Annotated[_workspace_annotation(typer.Argument)] = None,
         tables: Annotated[_table_name_annotation(typer.Argument)] = None,
         all_tables: Annotated[
@@ -371,10 +371,13 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         elif ORFaqsProteinQueryCli.Commands.EXPORT == cli_command:
             ORFaqsProteinQueryCli.export_proteins(**ctx.params)
         elif ORFaqsProteinQueryCli.Commands.REMOVE_WORKSPACES == cli_command:
-            ORFaqsProteinQueryCli.remove_workspace(**ctx.params)
+            ctx.params['all_workspaces'] = ctx.params.pop('all', False)
+            ORFaqsProteinQueryCli.remove_workspaces(**ctx.params)
         elif ORFaqsProteinQueryCli.Commands.REMOVE_TABLES == cli_command:
-            ORFaqsProteinQueryCli.remove_table(**ctx.params)
+            ctx.params['all_tables'] = ctx.params.pop('all', False)
+            ORFaqsProteinQueryCli.remove_tables(**ctx.params)
         elif ORFaqsProteinQueryCli.Commands.SHOW == cli_command:
+            ctx['all_workspaces_and_tables'] = ctx.params.pop('all')
             ORFaqsProteinQueryCli.show(**ctx.params)
 
     @app.callback(invoke_without_command=True)
