@@ -60,63 +60,6 @@ class ORFaqsProteinDiscoveryApi:
     DATAFRAME_INDEX_KEY = 'index'
 
     @staticmethod
-    def default_export_format() -> str:
-        return DataFrameExportFormat.CSV
-
-    @staticmethod
-    def default_output_directory() -> str:
-        return './'
-
-    @staticmethod
-    def available_export_formats() -> list[str]:
-        return _AVAILABLE_EXPORT_FORMATS
-
-    @staticmethod
-    def exported_dataframe_keys() -> list[str]:
-        return [
-            ORFaqsProteinDiscoveryApi.DATAFRAME_INDEX_KEY
-        ] + ORFaqsDiscoveredProteinRecord.keys()
-
-    @staticmethod
-    def find_discovered_protein_files(
-        input_path: str | os.PathLike,
-    ) -> list[pathlib.Path]:
-        #######################################################################
-        # Gather all discovery files.
-        input_file_paths: list[pathlib.Path] = []
-        if DirectoryUtils.is_file(input_path):
-            input_file_paths.append(input_path)
-
-        elif DirectoryUtils.is_directory(input_path):
-            # Grab all files from the directory. In discoveries involving
-            # multiple genes, discovery files will be organized in
-            # subdirectories.
-            input_file_paths = DirectoryUtils.glob_files(
-                input_path, recursive=True
-            )
-
-        discovered_proteins_files: list[pathlib.Path] = []
-        for file_path in input_file_paths:
-            # Validate the file paths...
-            proteins_dataframe = PandasUtils.read_file_as_dataframe(
-                file_path,
-                raise_error=False,
-            )
-            if proteins_dataframe is None:
-                continue
-
-            for record_key in ORFaqsDiscoveredProteinRecord.keys():
-                if record_key not in proteins_dataframe.columns:
-                    continue
-            discovered_proteins_files.append(file_path)
-
-        return discovered_proteins_files
-
-    @staticmethod
-    def unreferenced_uid() -> str:
-        "unknown_reference"
-
-    @staticmethod
     def _exported_discovered_proteins_file_name(
         export_format: _ExportFormatOptions,
         uid: str = None,
@@ -175,6 +118,63 @@ class ORFaqsProteinDiscoveryApi:
                 )
             )
         return reading_frame_proteins_map
+
+    @staticmethod
+    def default_export_format() -> str:
+        return DataFrameExportFormat.CSV
+
+    @staticmethod
+    def default_output_directory() -> str:
+        return './'
+
+    @staticmethod
+    def available_export_formats() -> list[str]:
+        return _AVAILABLE_EXPORT_FORMATS
+
+    @staticmethod
+    def exported_dataframe_keys() -> list[str]:
+        return [
+            ORFaqsProteinDiscoveryApi.DATAFRAME_INDEX_KEY
+        ] + ORFaqsDiscoveredProteinRecord.keys()
+
+    @staticmethod
+    def find_discovered_protein_files(
+        input_path: str | os.PathLike,
+    ) -> list[pathlib.Path]:
+        #######################################################################
+        # Gather all discovery files.
+        input_file_paths: list[pathlib.Path] = []
+        if DirectoryUtils.is_file(input_path):
+            input_file_paths.append(input_path)
+
+        elif DirectoryUtils.is_directory(input_path):
+            # Grab all files from the directory. In discoveries involving
+            # multiple genes, discovery files will be organized in
+            # subdirectories.
+            input_file_paths = DirectoryUtils.glob_files(
+                input_path, recursive=True
+            )
+
+        discovered_proteins_files: list[pathlib.Path] = []
+        for file_path in input_file_paths:
+            # Validate the file paths...
+            proteins_dataframe = PandasUtils.read_file_as_dataframe(
+                file_path,
+                raise_error=False,
+            )
+            if proteins_dataframe is None:
+                continue
+
+            for record_key in ORFaqsDiscoveredProteinRecord.keys():
+                if record_key not in proteins_dataframe.columns:
+                    continue
+            discovered_proteins_files.append(file_path)
+
+        return discovered_proteins_files
+
+    @staticmethod
+    def unreferenced_uid() -> str:
+        "unknown_reference"
 
     @staticmethod
     def discover_proteins_from_sequence(
