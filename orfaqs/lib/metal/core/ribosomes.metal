@@ -122,6 +122,10 @@ kernel void all_orf_lengths(
     device uint* orf_lengths [[buffer(5)]],
     uint g_id [[thread_position_in_grid]]) {
     // Find the start and stop codon pair (if it exists)
+    if ((0 == number_start_codons) || (0 == number_stop_codons)) {
+        return;
+    }
+
     // defining the reading frame for the protein.
     for (int i = g_id; i < number_start_codons; i += data_stride) {
         int start_codon_index = start_codon_indices[i];
@@ -163,6 +167,10 @@ kernel void translate_all_orfs(
     constant uint &data_stride [[buffer(4)]],
     device uchar* all_orf_proteins [[buffer(5)]],
     uint g_id [[thread_position_in_grid]]) {
+
+    if (0 == number_start_codons) {
+        return;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Translate the ORF.

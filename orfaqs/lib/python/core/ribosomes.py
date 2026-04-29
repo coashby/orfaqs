@@ -327,15 +327,13 @@ class RibosomeUtils:
     ) -> list[int]:
         found_codon_indices: list[int] = []
         codon_index = 0
-        number_codons = int(len(rna_sequence) / Codon.number_bases())
-        description = 'Finding codons...'
-        with tqdm(total=number_codons, desc=description) as progress_bar:
-            for codon in RibosomeUtils.read_codons(rna_sequence):
-                if codon in codons:
-                    found_codon_indices.append(codon_index)
 
-                codon_index += Codon.number_bases()
-                progress_bar.update(1)
+        process_list = RibosomeUtils.read_codons(rna_sequence)
+        for codon in process_list:
+            if codon in codons:
+                found_codon_indices.append(codon_index)
+
+            codon_index += Codon.number_bases()
 
         return found_codon_indices
 
@@ -577,6 +575,9 @@ class RibosomeUtils:
         start_codon_indices: list[int],
         stop_codon_indices: list[int],
     ) -> dict[int, Protein]:
+        if len(start_codon_indices) == 0 or len(stop_codon_indices) == 0:
+            return None
+
         amino_acid_sequence_buffer = (
             RibosomeUtils._rna_to_amino_acid_sequence_buffer_gpu(rna_sequence)
         )
@@ -684,7 +685,11 @@ class RibosomeUtils:
         rna_sequence: str | RNASequence,
         start_codon_indices: list[int],
         stop_codon_indices: list[int],
+        display_progress: bool = False,
     ) -> dict[int, Protein]:
+        if len(start_codon_indices) == 0 or len(stop_codon_indices) == 0:
+            return None
+
         # Sort and convert all codon indices to condon-centric indices.
         start_codon_indices = RibosomeUtils._convert_base_to_codon_indices(
             sorted(start_codon_indices)
@@ -699,7 +704,7 @@ class RibosomeUtils:
             for codon in RibosomeUtils.read_codons(rna_sequence)
         ]
 
-        # Copy all valid amino acid sequences into the ORF protein list.
+        # Copy all valid amino acid sequences into the ORF protein dict.
         all_orf_proteins: dict[int, Protein] = {}
         # Mark the end of the translation routine by adding a stop index to
         # the start_codon_indices list.
@@ -711,32 +716,37 @@ class RibosomeUtils:
         start_codon_index = start_codon_indices.pop()
         stop_codon_index = stop_codon_indices.pop()
         number_start_codons = len(start_codon_indices)
-        description = 'Translating ORFs...'
-        with tqdm(total=number_start_codons, desc=description) as progress_bar:
-            while start_codon_index != end_of_list_marker:
-                if start_codon_index > stop_codon_index:
-                    if len(stop_codon_indices) == 0:
-                        # There are no more stop codons to mark the
-                        # end of a valid reading frame.
-                        break
-                    else:
-                        # Get a new stop codon index.
-                        stop_codon_index = stop_codon_indices.pop()
-                        # Reevaluate outer loop conditions before
-                        # attempting transcription.
-                        continue
+        progress_bar = None
+        if display_progress:
+            progress_bar = tqdm(
+                total=number_start_codons, desc='Translating ORFs...'
+            )
+        while start_codon_index != end_of_list_marker:
+            if start_codon_index > stop_codon_index:
+                if len(stop_codon_indices) == 0:
+                    # There are no more stop codons to mark the
+                    # end of a valid reading frame.
+                    break
+                else:
+                    # Get a new stop codon index.
+                    stop_codon_index = stop_codon_indices.pop()
+                    # Reevaluate outer loop conditions before
+                    # attempting transcription.
+                    continue
 
-                # Transcribe the ORF.
-                start_codon_base_index = (
-                    start_codon_index * Codon.number_bases()
-                )
-                # Do not include the stop codon in the translation.
-                all_orf_proteins[start_codon_base_index] = Protein(
-                    amino_acids[start_codon_index:stop_codon_index]
-                )
-                # Get a new start codon index.
-                start_codon_index = start_codon_indices.pop()
+            # Transcribe the ORF.
+            start_codon_base_index = start_codon_index * Codon.number_bases()
+            # Do not include the stop codon in the translation.
+            all_orf_proteins[start_codon_base_index] = Protein(
+                amino_acids[start_codon_index:stop_codon_index]
+            )
+            # Get a new start codon index.
+            start_codon_index = start_codon_indices.pop()
+            if progress_bar is not None:
                 progress_bar.update(1)
+
+        if progress_bar is not None:
+            progress_bar.close()
 
         return all_orf_proteins
 
@@ -746,6 +756,7 @@ class RibosomeUtils:
         start_codons: list[Codon] = None,
         stop_codons: list[Codon] = None,
         use_gpu: bool = False,
+        display_progress: bool = False,
     ) -> dict[int, Protein]:
         """
         Returns a dictionary of RNA sequence base indices mapped to the protein
@@ -785,6 +796,9 @@ class RibosomeUtils:
             use_gpu=use_gpu,
         )
 
+        if len(start_codon_indices) == 0 or len(stop_codon_indices) == 0:
+            return None
+
         if ComputeUtils.compute_accelerator_available() and use_gpu:
             return RibosomeUtils._translate_all_orfs_gpu(
                 rna_sequence=rna_sequence,
@@ -796,4 +810,5 @@ class RibosomeUtils:
             rna_sequence=rna_sequence,
             start_codon_indices=start_codon_indices,
             stop_codon_indices=stop_codon_indices,
+            display_progress=display_progress,
         )

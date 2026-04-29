@@ -1,0 +1,5 @@
+index,source_uid,strand_type,reading_frame,dna_sequence_position,protein,protein_length
+0,unknown_reference,positive_strand,1,1,MNEICSAHPTI,11
+1,unknown_reference,positive_strand,2,4,MKYAPLIPPSN,11
+2,unknown_reference,positive_strand,3,10,MLRSSHHLTS,10
+3,unknown_reference,negative_strand,1,13,MVG,3

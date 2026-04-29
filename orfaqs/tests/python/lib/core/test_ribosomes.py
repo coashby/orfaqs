@@ -17,7 +17,7 @@ from orfaqs.lib.python.core.aminoacids import AminoAcid
 from orfaqs.lib.python.core.nucleotides import RNASequence
 from orfaqs.lib.python.core.proteins import Protein
 
-from orfaqs.tests._testutils import accelerators
+from orfaqs.tests.python._testutils import accelerators
 
 
 def _read_rna_sequence_txt_file(

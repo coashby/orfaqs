@@ -1,0 +1,1 @@
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 2, "dna_sequence_position": 4, "protein": "MKYAPLIPPSN", "protein_length": 11}

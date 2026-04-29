@@ -270,11 +270,10 @@ class NucleotideUtils:
         return [strand_type.value for strand_type in StrandType]
 
     @staticmethod
-    def create_sequence(
+    def make_sequence_object(
         sequence: (str | list[str] | list[NucleicAcid] | GenomicSequence),
         strand_type: StrandType = None,
         name: str = None,
-        log_errors: bool = True,
         raise_errors: bool = True,
     ) -> GenomicSequence:
         try:
@@ -282,7 +281,7 @@ class NucleotideUtils:
                 sequence,
                 strand_type,
                 name,
-                log_errors=log_errors,
+                log_errors=False,
                 raise_errors=raise_errors,
             )
         except ValueError:
@@ -291,18 +290,16 @@ class NucleotideUtils:
                     sequence,
                     strand_type,
                     name,
-                    log_errors=log_errors,
+                    log_errors=False,
                     raise_errors=raise_errors,
                 )
             except ValueError as e:
-                message = None
-                if log_errors:
-                    message = (
-                        '[ERROR] The sequence could not be interpreted as '
-                        'a DNA sequence or an RNA sequence. Check the '
-                        'input for errors.'
-                    )
-                    _logger.error(message)
+                message = (
+                    '[ERROR] The sequence could not be interpreted as '
+                    'a DNA sequence or an RNA sequence. Check the '
+                    'input for errors.'
+                )
+                _logger.error(message)
                 if raise_errors:
                     raise ValueError(message) from e
 

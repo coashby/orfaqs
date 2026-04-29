@@ -193,6 +193,19 @@ class ORFaqsCli(ABC):
         )
 
     @staticmethod
+    def _display_progress_annotation() -> tuple:
+        return (
+            bool,
+            typer.Option(
+                '--display-progress',
+                help=(
+                    'Display progress information (such as progress bars, '
+                    'update statements, etc.) while executing commands.'
+                ),
+            ),
+        )
+
+    @staticmethod
     def _launch_json_annotation(
         function_type: Callable = typer.Option,
     ) -> tuple:

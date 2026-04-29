@@ -60,10 +60,9 @@ class FASTASequence:
         )
         self._sequence = None
         try:
-            self._sequence = NucleotideUtils.create_sequence(
+            self._sequence = NucleotideUtils.make_sequence_object(
                 sequence=sequence_str,
                 name=self._name,
-                log_errors=False,
             )
         except ValueError:
             try:
