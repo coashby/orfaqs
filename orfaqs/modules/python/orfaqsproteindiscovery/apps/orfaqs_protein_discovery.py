@@ -27,10 +27,7 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
     def program_name():
         return 'ORFaqs Protein Discovery'
 
-    @app.callback(
-        invoke_without_command=True,
-        context_settings={'allow_interspersed_args': True},
-    )
+    @app.callback(**ORFaqsCli._default_callback_kwargs())
     @staticmethod
     def discover_proteins(
         input_sequence: Annotated[

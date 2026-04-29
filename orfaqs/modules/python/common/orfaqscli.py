@@ -26,19 +26,6 @@ class ORFaqsCli(ABC):
 
     _KWARGS_CTX_OBJECT_KEY = 'ctx'
 
-    @staticmethod
-    @abstractmethod
-    def program_name() -> str:
-        pass
-
-    @classmethod
-    def default_output_directory(cls) -> pathlib.Path:
-        base_path = DirectoryUtils.make_path_object('./.orfaqs-apps')
-        formatted_program_directory = (
-            cls.program_name().replace(' ', '-').lower()
-        )
-        return base_path.joinpath(formatted_program_directory)
-
     @classmethod
     def _create_output_directory(
         cls,
@@ -60,10 +47,6 @@ class ORFaqsCli(ABC):
 
         DirectoryUtils.mkdir_path(output_directory)
         return output_directory
-
-    @staticmethod
-    def launch_json_option_name() -> str:
-        return 'launch_json'
 
     @staticmethod
     def _cli_params_to_args(params: any) -> any:
@@ -129,6 +112,13 @@ class ORFaqsCli(ABC):
             add_completion=add_completion,
             no_args_is_help=True,
         )
+
+    @staticmethod
+    def _default_callback_kwargs() -> dict[str, any]:
+        return {
+            'invoke_without_command': True,
+            'context_settings': {'allow_interspersed_args': True},
+        }
 
     @staticmethod
     def _job_id_annotation() -> tuple:
@@ -223,6 +213,23 @@ class ORFaqsCli(ABC):
     @abstractmethod
     def _run(**kwargs):
         pass
+
+    @staticmethod
+    @abstractmethod
+    def program_name() -> str:
+        pass
+
+    @classmethod
+    def default_output_directory(cls) -> pathlib.Path:
+        base_path = DirectoryUtils.make_path_object('./.orfaqs-apps')
+        formatted_program_directory = (
+            cls.program_name().replace(' ', '-').lower()
+        )
+        return base_path.joinpath(formatted_program_directory)
+
+    @staticmethod
+    def launch_json_option_name() -> str:
+        return 'launch_json'
 
     @classmethod
     def run(cls, **kwargs):

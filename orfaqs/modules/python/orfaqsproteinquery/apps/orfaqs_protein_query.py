@@ -380,7 +380,7 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             ctx['all_workspaces_and_tables'] = ctx.params.pop('all')
             ORFaqsProteinQueryCli.show(**ctx.params)
 
-    @app.callback(invoke_without_command=True)
+    @app.callback(**ORFaqsCli._default_callback_kwargs())
     @staticmethod
     def cli(
         launch_json: Annotated[ORFaqsCli._launch_json_annotation()] = None,
