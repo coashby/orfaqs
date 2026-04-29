@@ -31,6 +31,8 @@ _AVAILABLE_EXPORT_FORMATS: list[str] = [
 
 
 class PandasUtils:
+    JSON_INDENT = 4
+
     @staticmethod
     def available_dataframe_export_formats() -> list[str]:
         return _AVAILABLE_EXPORT_FORMATS
@@ -85,7 +87,7 @@ class PandasUtils:
             )
         elif DataFrameExportFormat.JSON in export_format:
             file_path = file_path.with_suffix(f'.{DataFrameExportFormat.JSON}')
-            dataframe.to_json(file_path)
+            dataframe.to_json(file_path, indent=PandasUtils.JSON_INDENT)
         elif DataFrameExportFormat.XLSX in export_format:
             file_path = file_path.with_suffix(f'.{DataFrameExportFormat.XLSX}')
             dataframe.to_excel(

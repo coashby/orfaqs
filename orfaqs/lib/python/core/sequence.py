@@ -22,7 +22,8 @@ class Sequence(abc.ABC):
             sequence = ''.join(list(map(str, sequence)))
 
         if isinstance(sequence, str):
-            sequence = sequence.upper()
+            sequence_lines = sequence.split()
+            sequence = ''.join(sequence_lines).upper()
 
         available_symbols = [
             symbol.upper() for symbol in self.available_symbols()

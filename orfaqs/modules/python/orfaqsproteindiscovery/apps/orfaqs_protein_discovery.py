@@ -27,7 +27,10 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
     def program_name():
         return 'ORFaqs Protein Discovery'
 
-    @app.callback(invoke_without_command=True)
+    @app.callback(
+        invoke_without_command=True,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def discover_proteins(
         input_sequence: Annotated[
@@ -67,6 +70,9 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
             ),
         ] = False,
         enable_gpu: Annotated[ORFaqsCli._enable_gpu_annotation()] = False,
+        display_progress: Annotated[
+            ORFaqsCli._display_progress_annotation()
+        ] = False,
         launch_json: Annotated[ORFaqsCli._launch_json_annotation()] = None,
         ctx: typer.Context = None,
     ):

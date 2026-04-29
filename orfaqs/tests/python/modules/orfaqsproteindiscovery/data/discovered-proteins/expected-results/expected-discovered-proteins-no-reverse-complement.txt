@@ -1,0 +1,3 @@
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 1, "dna_sequence_position": 1, "protein": "MNEICSAHPTI", "protein_length": 11}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 2, "dna_sequence_position": 4, "protein": "MKYAPLIPPSN", "protein_length": 11}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 3, "dna_sequence_position": 10, "protein": "MLRSSHHLTS", "protein_length": 10}
