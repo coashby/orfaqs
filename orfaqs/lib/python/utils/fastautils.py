@@ -33,13 +33,38 @@ _SUPPORTED_UID_PREFIXES: list[str] = [
     'XR_',
 ]
 
-_EXPECTED_FASTA_FILE_EXTENSIONS = ['fsa', 'fasta']
+
+class FASTAFileExtensionType(enum.Enum):
+    FSA = enum.auto()
+    FASTA = enum.auto()
 
 
 class FASTASequenceType(enum.Enum):
     DNA = enum.auto()
     RNA = enum.auto()
     AMINO_ACID = enum.auto()
+
+
+def _fasta_extension_type_to_str(extension_type: enum.Enum) -> str:
+    return extension_type.name.lower()
+
+
+def _write_fasta_str_to_file(
+    file_path: pathlib.Path, fasta_str: str
+) -> pathlib.Path:
+    file_path = DirectoryUtils.make_path_object(file_path)
+    if not FASTAUtils.is_fasta_file(file_path):
+        suffix = (
+            f'.{_fasta_extension_type_to_str(FASTAFileExtensionType.FASTA)}'
+        )
+        file_path = file_path.with_suffix(suffix)
+    DirectoryUtils.mkdir_path(file_path.parent)
+
+    with open(file_path, 'w', encoding='utf-8') as o_file:
+        o_file.write(fasta_str)
+        o_file.write('\n')
+
+    return file_path
 
 
 class FASTASequence:
@@ -49,6 +74,21 @@ class FASTASequence:
     PROTEIN_SEQUENCE_STOP_CODON_DELIM = '*'
     HEADER_INFO_UID_KEY = 'uid'
     HEADER_INFO_SEQUENCE_DESCRIPTION = 'sequence_description'
+
+    def __eq__(self, rhs):
+        if not isinstance(rhs, FASTASequence):
+            return False
+
+        if (
+            self.header_info != rhs.header_info
+            or self.uid != rhs.uid
+            or self.name != rhs.name
+            or self.sequence_type != rhs.sequence_type
+            or self.sequence != rhs.sequence
+        ):
+            return False
+
+        return True
 
     def __init__(self, header_str: str, sequence_str: str):
         (self._uid, self._header_info) = FASTASequence._parse_header(
@@ -89,6 +129,30 @@ class FASTASequence:
         elif isinstance(self._sequence, Protein):
             self._sequence_type = FASTASequenceType.AMINO_ACID
 
+    @staticmethod
+    def _parse_header(header_str: str) -> tuple[str, dict[str, str]]:
+        if not FASTAUtils.is_fasta_header(header_str):
+            return None
+        header_str = header_str.replace(
+            FASTASequence.SEQUENCE_IDENTIFIER_DELIM, ''
+        )
+
+        # Grab the individual fields of the header
+        uid = None
+        header_info = {}
+        header_fields = header_str.split(' ')
+        number_header_fields = len(header_fields)
+        if number_header_fields > 0:
+            header_reference_field = header_fields[0]
+            uid = re.sub(r'[<>:"/\\|?*]', '', header_reference_field)
+            header_info[FASTASequence.HEADER_INFO_UID_KEY] = uid
+        if number_header_fields > 1:
+            header_info[FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION] = (
+                ' '.join(header_fields[1:])
+            )
+
+        return (uid, header_info)
+
     @property
     def header_info(self) -> dict:
         return self._header_info
@@ -109,29 +173,45 @@ class FASTASequence:
     def sequence_type(self) -> FASTASequenceType:
         return self._sequence_type
 
-    @staticmethod
-    def _parse_header(header_str: str) -> tuple[str, dict[str, str]]:
-        if not FASTAUtils.is_fasta_header(header_str):
-            return None
-        header_str = header_str.replace(
-            FASTASequence.SEQUENCE_IDENTIFIER_DELIM, ''
+    def as_fasta_str(self) -> str:
+        header_info_parts: list[str] = []
+        header_info_ordered_key_list = [
+            FASTASequence.HEADER_INFO_UID_KEY,
+            FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION,
+        ]
+        for key in header_info_ordered_key_list:
+            if key in self._header_info:
+                header_info_parts.append(f'{self._header_info.get(key)}')
+
+        header_info_str = ' '.join(header_info_parts)
+        header_info_str = ''.join(
+            [
+                f'{FASTASequence.SEQUENCE_IDENTIFIER_DELIM}',
+                header_info_str,
+            ]
         )
 
-        # Grab the individual fields of the header
-        uid = None
-        header_info = {}
-        header_fields = header_str.split(' ')
-        number_header_fields = len(header_fields)
-        if number_header_fields > 0:
-            header_reference_field = header_fields[0]
-            uid = re.sub(r'[^a-zA-Z0-9]', '', header_reference_field)
-            header_info[FASTASequence.HEADER_INFO_UID_KEY] = uid
-        if number_header_fields > 1:
-            header_info[FASTASequence.HEADER_INFO_SEQUENCE_DESCRIPTION] = (
-                ' '.join(header_fields[1:])
-            )
+        max_line_length = 60
+        sequence_length = len(self._sequence)
+        start_index = 0
+        sequence_parts: list[str] = []
+        sequence_str = self.sequence.sequence_str
+        while start_index < sequence_length:
+            end_index = start_index + max_line_length
+            sequence_parts.append(sequence_str[start_index:end_index])
+            start_index = end_index
 
-        return (uid, header_info)
+        sequence_str = '\n'.join(sequence_parts)
+        if self._sequence_type is FASTASequenceType.AMINO_ACID:
+            sequence_str += FASTASequence.PROTEIN_SEQUENCE_STOP_CODON_DELIM
+
+        return '\n'.join([header_info_str, sequence_str])
+
+    def as_fasta_file(self, file_path: str | os.PathLike) -> pathlib.Path:
+        return _write_fasta_str_to_file(
+            file_path=file_path,
+            fasta_str=self.as_fasta_str(),
+        )
 
 
 class FASTAUtils:
@@ -139,13 +219,14 @@ class FASTAUtils:
 
     @staticmethod
     def expected_file_extensions() -> list[str]:
-        return _EXPECTED_FASTA_FILE_EXTENSIONS
+        return [extension.name.lower() for extension in FASTAFileExtensionType]
 
     @staticmethod
     def is_fasta_file(file_path: str | os.PathLike) -> bool:
         file_path = DirectoryUtils.make_path_object(file_path)
         for fasta_extension in FASTAUtils.expected_file_extensions():
-            if fasta_extension.lower() in file_path.suffix.lower():
+            suffix = f'.{fasta_extension}'
+            if suffix == file_path.suffix.lower():
                 return True
 
         return False
@@ -208,3 +289,48 @@ class FASTAUtils:
                 )
 
         return fasta_sequences
+
+    @staticmethod
+    def export_as_fasta_file(
+        file_path: str | os.PathLike,
+        sequences: str | FASTASequence | Sequence | list,
+        uid: str = None,
+        info: str = None,
+    ) -> pathlib.Path:
+        input_sequences: list[any] = None
+        if isinstance(sequences, list):
+            input_sequences = sequences
+        else:
+            input_sequences = [sequences]
+
+        fasta_str_parts: list[str] = []
+        for input_sequence in input_sequences:
+            if not isinstance(input_sequence, FASTASequence):
+                sequence_str: str = None
+                if isinstance(input_sequence, Sequence):
+                    sequence_str = input_sequence.sequence_str
+                    if info is None:
+                        info = input_sequence.name
+                elif isinstance(input_sequence, str):
+                    sequence_str = input_sequence
+
+                header_info_parts: list[str] = [
+                    FASTASequence.SEQUENCE_IDENTIFIER_DELIM
+                ]
+                if uid is not None:
+                    header_info_parts.append(uid)
+                if info is not None:
+                    header_info_parts.append(info)
+                header_str = ' '.join(header_info_parts)
+                input_sequence = FASTASequence(
+                    header_str=header_str,
+                    sequence_str=sequence_str,
+                )
+
+            fasta_str_parts.append(input_sequence.as_fasta_str())
+
+        fasta_str = '\n'.join(fasta_str_parts)
+        return _write_fasta_str_to_file(
+            file_path=file_path,
+            fasta_str=fasta_str,
+        )
