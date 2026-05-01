@@ -113,7 +113,10 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             table=table,
         )
 
-    @app.command(Commands.LOAD_PROTEINS.value)
+    @app.command(
+        Commands.LOAD_PROTEINS.value,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def load_proteins(
         proteins: Annotated[
@@ -165,7 +168,10 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
         if query_result is not None:
             PandasUtils.print_dataframe(query_result)
 
-    @app.command(Commands.QUERY.value)
+    @app.command(
+        Commands.QUERY.value,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def query_proteins(
         query: Annotated[_query_annotation(typer.Argument)] = None,
@@ -218,7 +224,10 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             query=query,
         )
 
-    @app.command(Commands.EXPORT.value)
+    @app.command(
+        Commands.EXPORT.value,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def export_proteins(
         workspace: Annotated[_workspace_annotation(typer.Option)] = None,
@@ -249,7 +258,10 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             all_workspaces=all_workspaces,
         )
 
-    @app.command(Commands.REMOVE_WORKSPACES.value)
+    @app.command(
+        Commands.REMOVE_WORKSPACES.value,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def remove_workspaces(
         workspaces: Annotated[
@@ -289,7 +301,10 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             all_tables=all_tables,
         )
 
-    @app.command(Commands.REMOVE_TABLES.value)
+    @app.command(
+        Commands.REMOVE_TABLES.value,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def remove_tables(
         workspace: Annotated[_workspace_annotation(typer.Argument)] = None,
@@ -325,7 +340,10 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             all_workspaces_and_tables=all_workspaces_and_tables,
         )
 
-    @app.command(Commands.SHOW.value)
+    @app.command(
+        Commands.SHOW.value,
+        context_settings={'allow_interspersed_args': True},
+    )
     @staticmethod
     def show(
         workspace: Annotated[
@@ -380,7 +398,7 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             ctx['all_workspaces_and_tables'] = ctx.params.pop('all')
             ORFaqsProteinQueryCli.show(**ctx.params)
 
-    @app.callback(**ORFaqsCli._default_callback_kwargs())
+    @app.callback(invoke_without_command=True)
     @staticmethod
     def cli(
         launch_json: Annotated[ORFaqsCli._launch_json_annotation()] = None,

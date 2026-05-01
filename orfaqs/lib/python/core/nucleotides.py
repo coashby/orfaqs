@@ -152,12 +152,16 @@ class GenomicSequence(Sequence):
         sequence: (str | list[str] | list[NucleicAcid]),
         strand_type: StrandType = None,
         name: str = None,
+        uid: str = None,
+        info: str = None,
         log_errors: bool = True,
         raise_errors: bool = True,
     ):
         super().__init__(
             sequence=sequence,
             name=name,
+            uid=uid,
+            info=info,
             log_errors=log_errors,
             raise_errors=raise_errors,
         )
@@ -294,14 +298,8 @@ class NucleotideUtils:
                     raise_errors=raise_errors,
                 )
             except ValueError as e:
-                message = (
-                    '[ERROR] The sequence could not be interpreted as '
-                    'a DNA sequence or an RNA sequence. Check the '
-                    'input for errors.'
-                )
-                _logger.error(message)
                 if raise_errors:
-                    raise ValueError(message) from e
+                    raise ValueError from e
 
     @staticmethod
     def is_dna_sequence(

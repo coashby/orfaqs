@@ -67,6 +67,10 @@ def _write_fasta_str_to_file(
     return file_path
 
 
+class FASTAExportFormat:
+    FASTA = _fasta_extension_type_to_str(FASTAFileExtensionType.FASTA)
+
+
 class FASTASequence:
     """FASTASequence"""
 
@@ -309,8 +313,7 @@ class FASTAUtils:
                 sequence_str: str = None
                 if isinstance(input_sequence, Sequence):
                     sequence_str = input_sequence.sequence_str
-                    if info is None:
-                        info = input_sequence.name
+                    uid = input_sequence.uid
                 elif isinstance(input_sequence, str):
                     sequence_str = input_sequence
 
