@@ -114,13 +114,6 @@ class ORFaqsCli(ABC):
         )
 
     @staticmethod
-    def _default_callback_kwargs() -> dict[str, any]:
-        return {
-            'invoke_without_command': True,
-            'context_settings': {'allow_interspersed_args': True},
-        }
-
-    @staticmethod
     def _job_id_annotation() -> tuple:
         return (
             str,

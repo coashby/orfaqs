@@ -455,10 +455,17 @@ class AminoAcidSequence(Sequence):
         self,
         sequence: (AminoAcid | list[AminoAcid] | str) = None,
         name: str = None,
+        uid: str = None,
+        info: str = None,
     ):
         if isinstance(sequence, AminoAcid):
             sequence = [sequence]
-        super().__init__(sequence=sequence, name=name)
+        super().__init__(
+            sequence=sequence,
+            name=name,
+            uid=uid,
+            info=info,
+        )
 
     @property
     def amino_acid_chain(self) -> list[AminoAcid]:

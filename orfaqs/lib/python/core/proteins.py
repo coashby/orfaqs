@@ -19,9 +19,16 @@ class Protein(AminoAcidSequence):
         self,
         sequence: (AminoAcid | list[AminoAcid] | str) = None,
         name: str = None,
+        uid: str = None,
+        info: str = None,
         sequence_complete: bool = False,
     ):
-        super().__init__(sequence=sequence, name=name)
+        super().__init__(
+            sequence=sequence,
+            name=name,
+            uid=uid,
+            info=info,
+        )
 
         self._sequence_complete = sequence_complete
         if isinstance(sequence, Protein):

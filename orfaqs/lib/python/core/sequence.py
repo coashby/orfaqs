@@ -13,11 +13,15 @@ class Sequence(abc.ABC):
         self,
         sequence: (str | list),
         name: str,
+        uid: str = None,
+        info: str = None,
         log_errors: bool = True,
         raise_errors: bool = True,
     ):
         self._sequence_str: str = ''
         self._name = name
+        self._uid = uid
+        self._info = info
         if isinstance(sequence, list):
             sequence = ''.join(list(map(str, sequence)))
 
@@ -68,6 +72,14 @@ class Sequence(abc.ABC):
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def uid(self) -> str:
+        return self._uid
+
+    @property
+    def info(self) -> str:
+        return self._info
 
     @property
     def sequence_str(self) -> str:

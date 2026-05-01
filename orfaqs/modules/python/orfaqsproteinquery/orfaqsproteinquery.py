@@ -8,6 +8,8 @@ import pandas as pd
 import pathlib
 import typing
 
+from orfaqs.lib.python.core.proteins import Protein
+
 from orfaqs.modules.python.common.orfaqsapi import ORFaqsApi
 
 from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import (
@@ -34,6 +36,7 @@ from orfaqs.lib.python.utils.databaseutils import (
 )
 from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
 from orfaqs.lib.python.utils.fastautils import (
+    FASTAExportFormat,
     FASTASequenceType,
     FASTAUtils,
 )
@@ -48,6 +51,7 @@ _logger = logging.getLogger(__name__)
 _ExportFormatOptions = typing.Literal[
     DataFrameExportFormat.CSV,
     DataFrameExportFormat.XLSX,
+    FASTAExportFormat.FASTA,
 ]
 _AVAILABLE_EXPORT_FORMATS: list[str] = [
     format for format in _ExportFormatOptions.__args__
@@ -130,7 +134,9 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         proteins_dataframe: pd.DataFrame,
     ):
         def create_uid(row: pd.Series):
-            uid = row[ORFaqsDiscoveredProteinsTableSchema.SOURCE_UID_KEY]
+            source_uid = row[
+                ORFaqsDiscoveredProteinsTableSchema.SOURCE_UID_KEY
+            ]
             strand_type = row[
                 ORFaqsDiscoveredProteinsTableSchema.STRAND_TYPE_KEY
             ]
@@ -144,7 +150,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
                 ORFaqsDiscoveredProteinsTableSchema.PROTEIN_LENGTH_KEY
             ]
             return ORFaqsProteinQueryApi._create_uid(
-                uid=uid,
+                uid=source_uid,
                 strand_type=strand_type,
                 reading_frame=reading_frame,
                 rna_sequence_position=rna_sequence_position,
@@ -391,12 +397,30 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         dataframe: pd.DataFrame,
         export_format: _ExportFormatOptions = None,
     ):
-        ORFaqsProteinQueryApi._prepare_dataframe_for_export(dataframe)
-        PandasUtils.export_dataframe(
-            file_path=file_path,
-            dataframe=dataframe,
-            export_format=export_format,
-        )
+        if FASTAExportFormat.FASTA == export_format:
+            # Create a list of Protein seqences
+            protein_sequences: list[Protein] = []
+
+            def _fill_protein_sequence_list(row: pd.Series):
+                protein_sequences.append(
+                    Protein(
+                        sequence=row[ORFaqsProteinRecord.PROTEIN_KEY],
+                        uid=row[ORFaqsProteinRecord.UID_KEY],
+                    )
+                )
+
+            dataframe.apply(_fill_protein_sequence_list, axis='columns')
+            FASTAUtils.export_as_fasta_file(
+                file_path=file_path,
+                sequences=protein_sequences,
+            )
+        else:
+            ORFaqsProteinQueryApi._prepare_dataframe_for_export(dataframe)
+            PandasUtils.export_dataframe(
+                file_path=file_path,
+                dataframe=dataframe,
+                export_format=export_format,
+            )
 
     @staticmethod
     def _export_proteins(
