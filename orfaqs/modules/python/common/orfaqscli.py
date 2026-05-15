@@ -139,6 +139,16 @@ class ORFaqsCli(ABC):
         )
 
     @staticmethod
+    def _export() -> tuple:
+        return (
+            bool,
+            typer.Option(
+                '--export',
+                help=('Export the results of the current command.'),
+            ),
+        )
+
+    @staticmethod
     def _export_path_annotation() -> tuple:
         return (
             str,
@@ -156,9 +166,7 @@ class ORFaqsCli(ABC):
     ) -> tuple:
         return (
             export_options,
-            typer.Option(
-                help=('Defines the exported format of the resulting data.')
-            ),
+            typer.Option(help=('Define the format of the exported data.')),
         )
 
     @staticmethod

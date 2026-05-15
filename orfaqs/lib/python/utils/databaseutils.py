@@ -28,10 +28,7 @@ class SupportedDialects:
     POSTGRES = 'postgres'
 
 
-_DialectOptions = typing.Literal[SupportedDialects.POSTGRES]
-_SUPPORTED_DIALECTS = [
-    database_type for database_type in _DialectOptions.__args__
-]
+DatabaseDialectOptions = typing.Literal[SupportedDialects.POSTGRES]
 
 
 class DatabaseConnectionOptions:
@@ -241,7 +238,7 @@ class SqlAlchemyUtils:
 class DatabaseUtils(ABC):
     @staticmethod
     def supported_dialects() -> list[str]:
-        return _SUPPORTED_DIALECTS
+        return list(typing.get_args(DatabaseDialectOptions))
 
     @staticmethod
     @abstractmethod

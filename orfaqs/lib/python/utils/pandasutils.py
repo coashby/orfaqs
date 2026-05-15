@@ -25,9 +25,6 @@ DataFrameExportFormatOptions = typing.Literal[
     DataFrameExportFormat.JSON,
     DataFrameExportFormat.XLSX,
 ]
-_AVAILABLE_EXPORT_FORMATS: list[str] = [
-    format for format in DataFrameExportFormatOptions.__args__
-]
 
 
 class PandasUtils:
@@ -35,7 +32,7 @@ class PandasUtils:
 
     @staticmethod
     def available_dataframe_export_formats() -> list[str]:
-        return _AVAILABLE_EXPORT_FORMATS
+        return list(typing.get_args(DataFrameExportFormatOptions))
 
     @staticmethod
     def read_file_as_dataframe(
