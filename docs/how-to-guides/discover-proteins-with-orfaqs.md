@@ -27,7 +27,7 @@ The CLI allows you to:
 
 ### Using FASTA Files as Input
 ```
-orfaqs_protein_discovery -i input_fasta.fasta
+orfaqs_protein_discovery input_fasta.fasta
 ```
 <details>
 <summary><i>Example FASTA File Format</i></summary>
@@ -48,11 +48,11 @@ TAG
 ### Using a Sequence String as Input
 
 ```
-orfaqs_protein_discovery -i ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTGCTTCTGCA
+orfaqs_protein_discovery ATGGTCAAATTAACTTCAATCGCCGCTGGTGTCGCTGCCATCGCTGCTACTGCTTCTGCA
 ```
 
 ### Specifying the Exported Results Format
-The `export_format` option is used to control format of the discovered proteins
+The `--export-format` option is used to control format of the discovered proteins
 results. The expected command line value for each supported format is given in
 the table below.
 | Export Format | Command Line Value | Export File Extension |
@@ -63,11 +63,11 @@ the table below.
 
 #### Export Results in Excel Format
 ```
-orfaqs_protein_discovery -i input_fasta.fasta --export_format xlsx
+orfaqs_protein_discovery input_fasta.fasta --export-format xlsx
 ```
 #### Export Results in JSON Format
 ```
-orfaqs_protein_discovery -i input_fasta.fasta --export_format json
+orfaqs_protein_discovery input_fasta.fasta --export-format json
 ```
 
 ### Changing the Output Directory
@@ -75,9 +75,9 @@ All outputs from the app are generated within the directory path
 `<OUTPUT_DIRECTORY>/.orfaqs-apps/orfaqs-protein-discovery`. By default,
 `<OUTPUT_DIRECTORY>`is the current working directory.
 
-Use the `-o, --output_directory` options to change the output directory path.
+Use the `--output-directory` option to change the output directory path.
 ```
-orfaqs_protein_discovery -i input_fasta.fasta -o /~/my-output-directory
+orfaqs_protein_discovery input_fasta.fasta --output-directory ./~/my-output-directory
 ```
 
 ### Organizing Results Using a Job ID
@@ -85,9 +85,9 @@ You can further organize your results by using a *job id*. The job id is joined
 to the end of the output directory path resulting in the final path structure:
 `<OUTPUT_DIRECTORY>/.orfaqs-apps/orfaqs-protein-discovery/<JOB_ID>`
 
-Use the `-j, --job_id` options to add a job id directory to the output path.
+Use the `--job_id` options to add a job id directory to the output path.
 ```
-orfaqs_protein_discovery -i input_fasta.fasta -o /~/my-output-directory -j my-job-id
+orfaqs_protein_discovery input_fasta.fasta --output-directory /~/my-output-directory -j my-job-id
 ```
 ### Specify Options Using a Launch JSON
 Running the application via a launch *JSON* makes saving command configurations
@@ -95,19 +95,19 @@ easy and tractable. The sample launch *JSON* below uses all the allowed program
 options.
 ```JSON
 {
-    "input_sequence": "input_fasta.fasta",
-    "output_directory": "./",
-    "job_id": "my-job-id",
-    "export_format": "csv"
+    "input-sequence": "input_fasta.fasta",
+    "output-directory": "./",
+    "job-id": "my-job-id",
+    "export-format": "csv"
 }
 ```
 
 If an option is not needed, simply remove that key-value pair from the
 *JSON*. Options that are **NOT** allowed are simply ignored.
 
-Use the `--launch_json` option to run options specified in a *JSON* file.
+Use the `--launch-json` option to run options specified in a *JSON* file.
 ```
-orfaqs_protein_discovery --launch_json my-launch-json.json
+orfaqs_protein_discovery --launch-json my-launch-json.json
 ```
 
 
