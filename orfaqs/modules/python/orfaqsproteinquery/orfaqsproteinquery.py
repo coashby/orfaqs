@@ -254,7 +254,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
             ORFaqsProteinQueryApi.set_workspace(workspace)
         except ValueError:
             return
-        PostgresDatabaseUtils.create_database(_database_connection_options)
+
         if ORFaqsProteinTableType.DISCOVERED_PROTEINS == table_type:
             table = (
                 ORFaqsProteinQueryApi._create_orfaqs_discovered_proteins_table(
@@ -333,8 +333,12 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         discovered_proteins_files: list[pathlib.Path],
     ):
         #######################################################################
-        # Load all discovered proteins into the default database.
-        # 1. Ensure the desired database and tables exist.
+        # Load all discovered proteins into the specified workspace.
+
+        # Ensure the desired workspace and tables exist.
+        if workspace not in ORFaqsProteinQueryApi.managed_workspaces():
+            ORFaqsProteinQueryApi.create_workspace(workspace)
+
         table = ORFaqsProteinQueryApi._create_orfaqs_protein_table(
             workspace=workspace,
             table=table,
@@ -618,6 +622,8 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
 
     @staticmethod
     def create_workspace(workspace: str):
+        if workspace in ORFaqsProteinQueryApi.managed_workspaces():
+            return
         global _database_connection_options
         _database_connection_options.database = workspace
         PostgresDatabaseUtils.create_database(_database_connection_options)
