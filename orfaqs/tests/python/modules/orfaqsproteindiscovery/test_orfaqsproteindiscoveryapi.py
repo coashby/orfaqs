@@ -108,7 +108,8 @@ class TestORFaqsProteinDiscoveryApi:
             'source_uid',
             'strand_type',
             'reading_frame',
-            'dna_sequence_position',
+            'genomic_sequence_position',
+            'genomic_sequence',
             'protein',
             'protein_length',
         ]
@@ -159,7 +160,6 @@ class TestORFaqsProteinDiscoveryApi:
                 expected_results_file,
                 shallow=False,
             )
-
         elif isinstance(discovered_proteins, list):
             expected_results: list[str] = []
             with open(expected_results_file, 'r', encoding='utf-8') as i_file:
