@@ -48,3 +48,7 @@ class Protein(AminoAcidSequence):
 
     def end_sequence(self):
         self._sequence_complete = True
+
+    @staticmethod
+    def number_bases_per_amino_acid() -> int:
+        return AminoAcid.number_bases()

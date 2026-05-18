@@ -31,8 +31,9 @@ class ORFaqsDiscoveredProteinsTableSchema(ORFaqsDiscoveredProteinRecordKeys):
             ORFaqsDiscoveredProteinsTableSchema.SOURCE_UID_KEY,
             ORFaqsDiscoveredProteinsTableSchema.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinsTableSchema.READING_FRAME_KEY,
-            ORFaqsDiscoveredProteinsTableSchema.DNA_SEQUENCE_POSITION_KEY,
+            ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_POSITION_KEY,
             ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
+            ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_KEY,
             ORFaqsDiscoveredProteinsTableSchema.PROTEIN_LENGTH_KEY,
         ]
 
@@ -95,12 +96,12 @@ class ORFaqsDiscoveredProteinsTableFactory:
                 comment=ORFaqsProteinTableUtils.reading_frame_comment(),
             )
 
-            rna_sequence_position = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinsTableSchema.DNA_SEQUENCE_POSITION_KEY,
+            genomic_sequence_position = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_POSITION_KEY,
                 sqlalchemy.Integer,
                 sqlalchemy.CheckConstraint(_reading_frame_check_constraint()),
                 nullable=False,
-                comment=ORFaqsProteinTableUtils.rna_sequence_position_comment(),
+                comment=ORFaqsProteinTableUtils.genomic_sequence_position_comment(),
             )
 
             protein = SqlAlchemyUtils.create_column(
@@ -108,6 +109,13 @@ class ORFaqsDiscoveredProteinsTableFactory:
                 sqlalchemy.String,
                 nullable=False,
                 comment=ORFaqsProteinTableUtils.protein_comment(),
+            )
+
+            genomic_sequence = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_KEY,
+                sqlalchemy.String,
+                nullable=False,
+                comment=ORFaqsProteinTableUtils.genomic_sequence_comment(),
             )
 
             protein_length = SqlAlchemyUtils.create_column(

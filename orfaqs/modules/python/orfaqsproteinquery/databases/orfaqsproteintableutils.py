@@ -22,22 +22,38 @@ class ORFaqsProteinTableUtils:
     @staticmethod
     def strand_type_comment() -> str:
         strand_types_str = NucleotideUtils.available_strand_types_str()
-        return f'The genomic sequence strand {strand_types_str} used during translation.'
+        return (
+            f'The genomic sequence strand {strand_types_str} used during '
+            'translation.'
+        )
 
     @staticmethod
     def reading_frame_comment() -> str:
-        return 'The reading frame (1, 2, or 3) from which the protein was transcribed.'
+        return (
+            'The reading frame (1, 2, or 3) from which the protein was '
+            'transcribed.'
+        )
 
     @staticmethod
-    def rna_sequence_position_comment() -> str:
+    def genomic_sequence_position_comment() -> str:
         return (
-            'The position of the start codon in the RNA sequence '
+            'The position of the start codon in the genomic sequence '
             'from which the protein was transcribed.'
         )
 
     @staticmethod
     def protein_comment() -> str:
-        return 'The protein represented by its single-letter amino acid abbreviations.'
+        return (
+            'The protein represented by its single-letter '
+            'amino acid abbreviations.'
+        )
+
+    @staticmethod
+    def genomic_sequence_comment() -> str:
+        return (
+            'The genomic sequence associated with the coding sequence using '
+            'single-letter nucleotide abbreviations.'
+        )
 
     @staticmethod
     def protein_length_comment() -> str:

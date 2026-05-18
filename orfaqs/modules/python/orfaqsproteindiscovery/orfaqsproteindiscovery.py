@@ -299,13 +299,24 @@ class ORFaqsProteinDiscoveryApi:
                 if proteins_map is None:
                     continue
                 for base_index, protein in proteins_map.items():
-                    # Convert the protein's base location to a "1's" based index.
+                    # 1. Find the corresponding RNA sequence and save it as a
+                    #    DNA sequence.
+                    # 2. Convert the protein's base location to a "1's" based
+                    #    index.
+                    sequence_length = (
+                        protein.sequence_length
+                        * Protein.number_bases_per_amino_acid()
+                    )
+                    protein_genomic_sequence = rna_sequence[
+                        base_index : (base_index + sequence_length)
+                    ]
                     discovered_proteins.append(
                         ORFaqsDiscoveredProteinRecord(
                             uid=uid,
                             strand_type=strand_type,
                             reading_frame=reading_frame,
-                            rna_sequence_position=(base_index + 1),
+                            genomic_sequence_position=(base_index + 1),
+                            genomic_sequence=protein_genomic_sequence,
                             protein=protein,
                         )
                     )

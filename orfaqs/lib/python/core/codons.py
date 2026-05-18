@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 class Codon(ABC):
     """Codon"""
 
-    _NUMBER_BASES_IN_CODON = 3
+    _NUMBER_BASES_PER_CODON = 3
     _sequence: RNASequence = None
 
     @abstractmethod
@@ -36,7 +36,7 @@ class Codon(ABC):
         elif isinstance(rhs, str):
             return self.sequence_str.upper() == rhs.upper()
         elif isinstance(rhs, list):
-            if len(rhs) != Codon._NUMBER_BASES_IN_CODON:
+            if len(rhs) != Codon._NUMBER_BASES_PER_CODON:
                 return False
             if isinstance(rhs[0], NucleicAcid):
                 return (
@@ -59,7 +59,7 @@ class Codon(ABC):
 
     @staticmethod
     def number_bases() -> int:
-        return Codon._NUMBER_BASES_IN_CODON
+        return Codon._NUMBER_BASES_PER_CODON
 
 
 class _UUU(Codon):
