@@ -11,6 +11,8 @@ from orfaqs.lib.python.core.sequence import Sequence
 class AminoAcid(ABC):
     """AminoAcid"""
 
+    _NUMBER_BASES_PER_AMINO_ACID = 3
+
     def __hash__(self):
         return hash(self.abbreviation)
 
@@ -37,6 +39,10 @@ class AminoAcid(ABC):
     @abstractmethod
     def symbol(self) -> str:
         pass
+
+    @staticmethod
+    def number_bases() -> int:
+        return AminoAcid._NUMBER_BASES_PER_AMINO_ACID
 
 
 class _Alanine(AminoAcid):
@@ -504,3 +510,7 @@ class AminoAcidUtils:
     @staticmethod
     def symbol_to_amino_acid(symbol: str) -> AminoAcid:
         return _AMINO_ACID_SYMBOL_LUT.get(symbol)
+
+    @staticmethod
+    def number_bases_per_amino_acid() -> int:
+        return AminoAcid.number_bases()

@@ -6,7 +6,13 @@ import abc
 import logging
 import pandas as pd
 
-from orfaqs.lib.python.core.nucleotides import StrandType
+from orfaqs.lib.python.core.enzymes import RNAPolymerase
+from orfaqs.lib.python.core.nucleotides import (
+    GenomicSequence,
+    NucleotideUtils,
+    RNASequence,
+    StrandType,
+)
 from orfaqs.lib.python.core.proteins import Protein
 from orfaqs.lib.python.core.ribosomes import RNAReadingFrame
 
@@ -24,11 +30,12 @@ class ORFaqsProteinRecordKeys:
 class ORFaqsDiscoveredProteinRecordKeys(ORFaqsProteinRecordKeys):
     """ORFaqsDiscoveredProteinRecordKeys"""
 
-    SOURCE_UID_KEY = 'source_uid'
+    GENOMIC_SEQUENCE_KEY = 'genomic_sequence'
+    GENOMIC_SEQUENCE_POSITION_KEY = 'genomic_sequence_position'
     PROTEIN_KEY = 'protein'
     PROTEIN_LENGTH_KEY = 'protein_length'
     READING_FRAME_KEY = 'reading_frame'
-    DNA_SEQUENCE_POSITION_KEY = 'dna_sequence_position'
+    SOURCE_UID_KEY = 'source_uid'
     STRAND_TYPE_KEY = 'strand_type'
 
 
@@ -88,13 +95,23 @@ class ORFaqsDiscoveredProteinRecord(
         uid: str,
         strand_type: StrandType,
         reading_frame: RNAReadingFrame,
-        rna_sequence_position: int,
+        genomic_sequence_position: int,
+        genomic_sequence: GenomicSequence | str,
         protein: Protein,
     ):
         self._uid = uid
         self._strand_type = strand_type
         self._reading_frame = reading_frame
-        self._rna_sequence_position = rna_sequence_position
+        self._genomic_sequence_position = genomic_sequence_position
+        if isinstance(genomic_sequence, str):
+            genomic_sequence = NucleotideUtils.make_sequence_object(
+                genomic_sequence
+            )
+        if isinstance(genomic_sequence, RNASequence):
+            genomic_sequence = RNAPolymerase.reverse_transcribe(
+                genomic_sequence
+            )
+        self._genomic_sequence = genomic_sequence.sequence_str
         self._protein = protein
 
     @property
@@ -108,10 +125,15 @@ class ORFaqsDiscoveredProteinRecord(
             elif ORFaqsDiscoveredProteinRecord.READING_FRAME_KEY == record_key:
                 record_map[record_key] = self._reading_frame.value
             elif (
-                ORFaqsDiscoveredProteinRecord.DNA_SEQUENCE_POSITION_KEY
+                ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_POSITION_KEY
                 == record_key
             ):
-                record_map[record_key] = self._rna_sequence_position
+                record_map[record_key] = self._genomic_sequence_position
+            elif (
+                ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_KEY
+                == record_key
+            ):
+                record_map[record_key] = self._genomic_sequence
             elif ORFaqsDiscoveredProteinRecord.PROTEIN_KEY == record_key:
                 record_map[record_key] = self._protein
             elif (
@@ -135,7 +157,8 @@ class ORFaqsDiscoveredProteinRecord(
             ORFaqsDiscoveredProteinRecord.SOURCE_UID_KEY,
             ORFaqsDiscoveredProteinRecord.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinRecord.READING_FRAME_KEY,
-            ORFaqsDiscoveredProteinRecord.DNA_SEQUENCE_POSITION_KEY,
+            ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_POSITION_KEY,
+            ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_KEY,
             ORFaqsDiscoveredProteinRecord.PROTEIN_KEY,
             ORFaqsDiscoveredProteinRecord.PROTEIN_LENGTH_KEY,
         ]

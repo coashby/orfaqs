@@ -69,6 +69,15 @@ class Sequence(abc.ABC):
             rhs_sequence_str = rhs
         return self._sequence_str == rhs_sequence_str
 
+    def __getitem__(self, key):
+        sub_sequence = self._sequence_str[key]
+        return type(self)(
+            sub_sequence,
+            self._name,
+            self._uid,
+            self._info,
+        )
+
     @property
     def name(self) -> str:
         return self._name
