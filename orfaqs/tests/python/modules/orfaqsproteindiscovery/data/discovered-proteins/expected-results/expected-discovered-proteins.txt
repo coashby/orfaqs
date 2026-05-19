@@ -1,4 +1,4 @@
-{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 1, "genomic_sequence_position": 1, "genomic_sequence": "TCAGCTAGTTAGATGGTGGGATGAGCGGAGCAT", "protein": "MNEICSAHPTI", "protein_length": 11}
-{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 2, "genomic_sequence_position": 4, "genomic_sequence": "GCTAGTTAGATGGTGGGATGAGCGGAGCATATT", "protein": "MKYAPLIPPSN", "protein_length": 11}
-{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 3, "genomic_sequence_position": 10, "genomic_sequence": "TAGATGGTGGGATGAGCGGAGCATATTTCA", "protein": "MLRSSHHLTS", "protein_length": 10}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 1, "genomic_sequence_position": 1, "genomic_sequence": "ATGAATGAAATATGCTCCGCTCATCCCACCATC", "protein": "MNEICSAHPTI", "protein_length": 11}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 2, "genomic_sequence_position": 5, "genomic_sequence": "ATGAAATATGCTCCGCTCATCCCACCATCTAAC", "protein": "MKYAPLIPPSN", "protein_length": 11}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 3, "genomic_sequence_position": 12, "genomic_sequence": "ATGCTCCGCTCATCCCACCATCTAACTAGC", "protein": "MLRSSHHLTS", "protein_length": 10}
 {"source_uid": "unknown_reference", "strand_type": "negative_strand", "reading_frame": 1, "genomic_sequence_position": 13, "genomic_sequence": "ATGGTGGGA", "protein": "MVG", "protein_length": 3}

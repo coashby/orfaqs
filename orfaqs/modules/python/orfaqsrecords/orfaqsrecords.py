@@ -105,14 +105,39 @@ class ORFaqsDiscoveredProteinRecord(
         self._genomic_sequence_position = genomic_sequence_position
         if isinstance(genomic_sequence, str):
             genomic_sequence = NucleotideUtils.make_sequence_object(
-                genomic_sequence
+                genomic_sequence,
+                strand_type=strand_type,
             )
         if isinstance(genomic_sequence, RNASequence):
             genomic_sequence = RNAPolymerase.reverse_transcribe(
                 genomic_sequence
             )
-        self._genomic_sequence = genomic_sequence.sequence_str
+        self._genomic_sequence = genomic_sequence
         self._protein = protein
+
+    @property
+    def uid(self) -> str:
+        return self._uid
+
+    @property
+    def strand_type(self) -> StrandType:
+        return self._strand_type
+
+    @property
+    def reading_frame(self) -> RNAReadingFrame:
+        return self._reading_frame
+
+    @property
+    def genomic_sequence_position(self) -> int:
+        return self._genomic_sequence_position
+
+    @property
+    def genomic_sequence(self) -> GenomicSequence:
+        return self._genomic_sequence
+
+    @property
+    def protein(self) -> Protein:
+        return self._protein
 
     @property
     def record_dict(self) -> dict[str, any]:
@@ -133,7 +158,7 @@ class ORFaqsDiscoveredProteinRecord(
                 ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_KEY
                 == record_key
             ):
-                record_map[record_key] = self._genomic_sequence
+                record_map[record_key] = self._genomic_sequence.sequence_str
             elif ORFaqsDiscoveredProteinRecord.PROTEIN_KEY == record_key:
                 record_map[record_key] = self._protein
             elif (

@@ -179,6 +179,10 @@ class RibosomeUtils:
         return compute_accelerator
 
     @staticmethod
+    def reading_frame_offset(reading_frame: RNAReadingFrame):
+        return reading_frame.value - 1
+
+    @staticmethod
     def start_codons() -> list[Codon]:
         return [_codons.AUG]
 
@@ -572,6 +576,7 @@ class RibosomeUtils:
     @staticmethod
     def _translate_all_orfs_gpu(
         rna_sequence: str | RNASequence,
+        reading_frame_offset: int,
         start_codon_indices: list[int],
         stop_codon_indices: list[int],
     ) -> dict[int, Protein]:
@@ -671,7 +676,10 @@ class RibosomeUtils:
                 buffer_start_index:buffer_end_index
             ]
             protein_str = bytearray(protein_buffer).decode().replace(' ', '')
-            base_index = start_codon_indices[index] * Codon.number_bases()
+            base_index = (
+                start_codon_indices[index] * Codon.number_bases()
+                + reading_frame_offset
+            )
             all_orf_proteins[base_index] = Protein(protein_str)
             buffer_start_index = buffer_end_index
         return all_orf_proteins
@@ -683,6 +691,7 @@ class RibosomeUtils:
     @staticmethod
     def _translate_all_orfs(
         rna_sequence: str | RNASequence,
+        reading_frame_offset: int,
         start_codon_indices: list[int],
         stop_codon_indices: list[int],
         display_progress: bool = False,
@@ -735,9 +744,11 @@ class RibosomeUtils:
                     continue
 
             # Transcribe the ORF.
-            start_codon_base_index = start_codon_index * Codon.number_bases()
+            base_index = (
+                start_codon_index * Codon.number_bases() + reading_frame_offset
+            )
             # Do not include the stop codon in the translation.
-            all_orf_proteins[start_codon_base_index] = Protein(
+            all_orf_proteins[base_index] = Protein(
                 amino_acids[start_codon_index:stop_codon_index]
             )
             # Get a new start codon index.
@@ -753,6 +764,7 @@ class RibosomeUtils:
     @staticmethod
     def translate_all_orfs(
         rna_sequence: str | RNASequence,
+        reading_frame: RNAReadingFrame,
         start_codons: list[Codon] = None,
         stop_codons: list[Codon] = None,
         use_gpu: bool = False,
@@ -765,7 +777,10 @@ class RibosomeUtils:
         Arguments:
         ----------
         rna_sequence (str | RNASequence):
-            The input RNA sequence to inspect for stop codons.
+            The input RNA sequence to translate.
+
+        reading_frame (RNAReadingFrame):
+            The reading frame in which to apply the translation.
 
         start_codons (list[Codon]):
             (Optional) A list of codons known to be, or labeled as, start
@@ -785,6 +800,19 @@ class RibosomeUtils:
         if stop_codons is None:
             stop_codons = RibosomeUtils.stop_codons()
 
+        #######################################################################
+        # Index the specified reading frame.
+        (start_index, stop_index) = RibosomeUtils.sequence_start_stop_indices(
+            rna_sequence,
+            reading_frame,
+        )
+        rna_sequence = rna_sequence[start_index:stop_index]
+        reading_frame_offset = RibosomeUtils.reading_frame_offset(
+            reading_frame
+        )
+
+        #######################################################################
+        # Find the start and stop codon indices (if any).
         start_codon_indices = RibosomeUtils.find_start_codons(
             rna_sequence=rna_sequence,
             start_codons=start_codons,
@@ -799,15 +827,19 @@ class RibosomeUtils:
         if len(start_codon_indices) == 0 or len(stop_codon_indices) == 0:
             return None
 
+        #######################################################################
+        # Translate all proteins based on the available start/stop codon pairs.
         if ComputeUtils.compute_accelerator_available() and use_gpu:
             return RibosomeUtils._translate_all_orfs_gpu(
                 rna_sequence=rna_sequence,
+                reading_frame_offset=reading_frame_offset,
                 start_codon_indices=start_codon_indices,
                 stop_codon_indices=stop_codon_indices,
             )
 
         return RibosomeUtils._translate_all_orfs(
             rna_sequence=rna_sequence,
+            reading_frame_offset=reading_frame_offset,
             start_codon_indices=start_codon_indices,
             stop_codon_indices=stop_codon_indices,
             display_progress=display_progress,

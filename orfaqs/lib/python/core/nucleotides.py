@@ -144,6 +144,51 @@ class StrandType(enum.Enum):
         return self.value
 
 
+class GenomicTriplet:
+    NUMBER_BASES = 3
+
+    def __eq__(self, value):
+        value = str(value)
+        return self._triplet_str == value.upper()
+
+    def __init__(self, *nucleotides):
+        raise_error = False
+        nucleotide_str = ''
+        if len(nucleotides) == 1:
+            nucleotides = nucleotides[0]
+            if isinstance(nucleotides, str) or isinstance(
+                nucleotides, GenomicSequence
+            ):
+                nucleotide_str = str(nucleotides)
+            else:
+                raise_error = True
+
+        elif len(nucleotides) == GenomicTriplet.NUMBER_BASES:
+            if all(
+                isinstance(nucleotide, NucleicAcid)
+                for nucleotide in nucleotides
+            ) or all(
+                isinstance(nucleotide, str) for nucleotide in nucleotides
+            ):
+                for nucleotide in nucleotides:
+                    nucleotide_str += str(nucleotide)
+            else:
+                raise_error = True
+
+        if raise_error:
+            message = '[ERROR] Unsupported input type.'
+            _logger.error(message)
+            raise ValueError(message)
+
+        self._triplet_str = nucleotide_str[
+            0 : GenomicTriplet.NUMBER_BASES
+        ].upper()
+
+    @property
+    def triplet_str(self) -> str:
+        return self._triplet_str
+
+
 class GenomicSequence(Sequence):
     """GenomicSequence"""
 
@@ -187,23 +232,37 @@ class GenomicSequence(Sequence):
     def __len__(self) -> int:
         return len(self._sequence_str)
 
-    @staticmethod
-    @abstractmethod
-    def available_bases() -> list[NucleicAcid]:
-        pass
-
     @classmethod
     def available_symbols(cls) -> list[str]:
         return [base.symbol for base in cls.available_bases()]
 
     @staticmethod
     @abstractmethod
+    def available_bases() -> list[NucleicAcid]:
+        pass
+
+    @staticmethod
+    @abstractmethod
     def base_complement(base: str | NucleicAcid) -> NucleicAcid:
         pass
 
+    @staticmethod
+    def number_bases_per_triplet() -> int:
+        return GenomicTriplet.NUMBER_BASES
+
+    def number_triplets(self) -> int:
+        return int(len(self._sequence_str) / GenomicTriplet.NUMBER_BASES)
+
     @property
-    def strand_type(self) -> str:
+    def strand_type(self) -> StrandType:
         return self._strand_type
+
+    def triplet(self, index) -> GenomicTriplet:
+        base_index = index * GenomicTriplet.NUMBER_BASES
+        triplet = self._sequence_str[
+            base_index : base_index + GenomicTriplet.NUMBER_BASES
+        ]
+        return GenomicTriplet(triplet)
 
 
 class DNASequence(GenomicSequence):

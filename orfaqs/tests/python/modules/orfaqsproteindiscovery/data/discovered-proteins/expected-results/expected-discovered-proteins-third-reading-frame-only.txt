@@ -1,1 +1,1 @@
-{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 3, "genomic_sequence_position": 10, "genomic_sequence": "TAGATGGTGGGATGAGCGGAGCATATTTCA", "protein": "MLRSSHHLTS", "protein_length": 10}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 3, "genomic_sequence_position": 12, "genomic_sequence": "ATGCTCCGCTCATCCCACCATCTAACTAGC", "protein": "MLRSSHHLTS", "protein_length": 10}

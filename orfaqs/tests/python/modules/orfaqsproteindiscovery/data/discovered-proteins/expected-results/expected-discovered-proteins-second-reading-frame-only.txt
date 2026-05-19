@@ -1,1 +1,1 @@
-{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 2, "genomic_sequence_position": 4, "genomic_sequence": "GCTAGTTAGATGGTGGGATGAGCGGAGCATATT", "protein": "MKYAPLIPPSN", "protein_length": 11}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 2, "genomic_sequence_position": 5, "genomic_sequence": "ATGAAATATGCTCCGCTCATCCCACCATCTAAC", "protein": "MKYAPLIPPSN", "protein_length": 11}

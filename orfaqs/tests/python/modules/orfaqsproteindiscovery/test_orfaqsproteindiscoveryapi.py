@@ -171,6 +171,11 @@ class TestORFaqsProteinDiscoveryApi:
             for discovered_protein, expected_result_str in zip(
                 discovered_proteins, expected_results
             ):
+                # All genomic sequences must begin with ATG or AUG.
+                first_triplet = discovered_protein.genomic_sequence.triplet(0)
+                assert ('ATG' == first_triplet) or ('AUG' == first_triplet)
+                # All proteins must begin with Methionine.
+                assert 'M' == discovered_protein.protein[0]
                 assert (
                     discovered_protein.condensed_record_json_str
                     == expected_result_str

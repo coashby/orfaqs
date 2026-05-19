@@ -17,10 +17,12 @@ class AminoAcid(ABC):
         return hash(self.abbreviation)
 
     def __eq__(self, rhs: any) -> bool:
-        if isinstance(rhs, AminoAcid):
-            return rhs.abbreviation == self.abbreviation
-
-        return False
+        rhs: str = str(rhs)
+        return (
+            self.symbol == rhs.upper()
+            or self.name == rhs.lower()
+            or self.abbreviation.lower() == rhs.lower()
+        )
 
     def __str__(self) -> str:
         return self.symbol

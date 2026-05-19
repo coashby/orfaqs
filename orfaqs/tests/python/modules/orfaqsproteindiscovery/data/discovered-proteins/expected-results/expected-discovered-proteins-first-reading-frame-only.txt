@@ -1,2 +1,2 @@
-{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 1, "genomic_sequence_position": 1, "genomic_sequence": "TCAGCTAGTTAGATGGTGGGATGAGCGGAGCAT", "protein": "MNEICSAHPTI", "protein_length": 11}
+{"source_uid": "unknown_reference", "strand_type": "positive_strand", "reading_frame": 1, "genomic_sequence_position": 1, "genomic_sequence": "ATGAATGAAATATGCTCCGCTCATCCCACCATC", "protein": "MNEICSAHPTI", "protein_length": 11}
 {"source_uid": "unknown_reference", "strand_type": "negative_strand", "reading_frame": 1, "genomic_sequence_position": 13, "genomic_sequence": "ATGGTGGGA", "protein": "MVG", "protein_length": 3}

@@ -621,6 +621,7 @@ class TestRibosomeUtils:
 
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_short_str,
+            reading_frame=RNAReadingFrame.FIRST_FRAME,
             use_gpu=False,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
@@ -637,6 +638,7 @@ class TestRibosomeUtils:
 
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_short,
+            reading_frame=RNAReadingFrame.FIRST_FRAME,
             use_gpu=False,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
@@ -653,6 +655,7 @@ class TestRibosomeUtils:
         """Test retranslate_all_orfs with RNASequence object."""
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_short,
+            reading_frame=RNAReadingFrame.FIRST_FRAME,
             use_gpu=True,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
@@ -668,6 +671,7 @@ class TestRibosomeUtils:
         """Test retranslate_all_orfs with RNASequence object."""
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_long,
+            reading_frame=RNAReadingFrame.FIRST_FRAME,
             use_gpu=False,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
@@ -684,6 +688,7 @@ class TestRibosomeUtils:
         """Test retranslate_all_orfs with RNASequence object."""
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_long,
+            reading_frame=RNAReadingFrame.FIRST_FRAME,
             use_gpu=True,
         )
         TestRibosomeUtils._validate_translate_all_orfs(

@@ -127,17 +127,14 @@ class ORFaqsProteinDiscoveryApi:
         for reading_frame in reading_frames:
             if display_progress:
                 print(f'Reading Frame: {reading_frame}')
-            (start_index, stop_index) = (
-                RibosomeUtils.sequence_start_stop_indices(
-                    rna_sequence, reading_frame
-                )
-            )
+
             ###################################################################
             # Get all proteins for the current reading frame.
-            rna_sequence_frame = rna_sequence[start_index:stop_index]
+            use_gpu = False
             reading_frame_proteins_map[reading_frame] = (
                 RibosomeUtils.translate_all_orfs(
-                    rna_sequence=rna_sequence_frame,
+                    rna_sequence=rna_sequence,
+                    reading_frame=reading_frame,
                     start_codons=start_codons,
                     stop_codons=stop_codons,
                     use_gpu=use_gpu,
@@ -271,17 +268,20 @@ class ORFaqsProteinDiscoveryApi:
         )
 
         # Process the reverse complement of the sequence if it is requested.
+        reverse_complement_rna_sequence = None
         if include_reverse_complement:
-            rna_sequence = NucleotideUtils.reverse_complement(rna_sequence)
-            strand_type_protein_map[rna_sequence.strand_type] = (
-                ORFaqsProteinDiscoveryApi._translate_all_orf(
-                    rna_sequence=rna_sequence,
-                    reading_frames=reading_frames,
-                    start_codons=start_codons,
-                    stop_codons=stop_codons,
-                    use_gpu=use_gpu,
-                    display_progress=display_progress,
-                )
+            reverse_complement_rna_sequence = (
+                NucleotideUtils.reverse_complement(rna_sequence)
+            )
+            strand_type_protein_map[
+                reverse_complement_rna_sequence.strand_type
+            ] = ORFaqsProteinDiscoveryApi._translate_all_orf(
+                rna_sequence=reverse_complement_rna_sequence,
+                reading_frames=reading_frames,
+                start_codons=start_codons,
+                stop_codons=stop_codons,
+                use_gpu=use_gpu,
+                display_progress=display_progress,
             )
 
         _perf_profiler.stop_perf_timer(
@@ -307,7 +307,16 @@ class ORFaqsProteinDiscoveryApi:
                         protein.sequence_length
                         * Protein.number_bases_per_amino_acid()
                     )
-                    protein_genomic_sequence = rna_sequence[
+                    protein_genomic_sequence = None
+                    if strand_type == StrandType.POSITIVE_STRAND:
+                        protein_genomic_sequence = rna_sequence
+                    elif strand_type == StrandType.NEGATIVE_STRAND:
+                        protein_genomic_sequence = (
+                            reverse_complement_rna_sequence
+                        )
+
+                    # C
+                    protein_genomic_sequence = protein_genomic_sequence[
                         base_index : (base_index + sequence_length)
                     ]
                     discovered_proteins.append(
