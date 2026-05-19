@@ -115,7 +115,7 @@ class ORFaqsProteinDiscoveryApi:
         reading_frames: list[RNAReadingFrame],
         start_codons: list[Codon],
         stop_codons: list[Codon],
-        use_gpu: bool,
+        enbale_gpu: bool,
         display_progress: bool = False,
     ) -> dict[RNAReadingFrame, dict[int, Protein]]:
         #######################################################################
@@ -130,14 +130,13 @@ class ORFaqsProteinDiscoveryApi:
 
             ###################################################################
             # Get all proteins for the current reading frame.
-            use_gpu = False
             reading_frame_proteins_map[reading_frame] = (
                 RibosomeUtils.translate_all_orfs(
                     rna_sequence=rna_sequence,
                     reading_frame=reading_frame,
                     start_codons=start_codons,
                     stop_codons=stop_codons,
-                    use_gpu=use_gpu,
+                    enable_gpu=enbale_gpu,
                     display_progress=display_progress,
                 )
             )
@@ -212,7 +211,7 @@ class ORFaqsProteinDiscoveryApi:
         export_results: bool = False,
         output_directory: str | os.PathLike = None,
         export_format: _ExportFormatOptions = None,
-        use_gpu: bool = True,
+        enable_gpu: bool = True,
         display_progress: bool = False,
     ) -> tuple[(list[ORFaqsDiscoveredProteinRecord] | pathlib.Path), int]:
         _perf_profiler.start_perf_timer(
@@ -262,7 +261,7 @@ class ORFaqsProteinDiscoveryApi:
                 reading_frames=reading_frames,
                 start_codons=start_codons,
                 stop_codons=stop_codons,
-                use_gpu=use_gpu,
+                enbale_gpu=enable_gpu,
                 display_progress=display_progress,
             )
         )
@@ -280,7 +279,7 @@ class ORFaqsProteinDiscoveryApi:
                 reading_frames=reading_frames,
                 start_codons=start_codons,
                 stop_codons=stop_codons,
-                use_gpu=use_gpu,
+                enbale_gpu=enable_gpu,
                 display_progress=display_progress,
             )
 
@@ -350,7 +349,7 @@ class ORFaqsProteinDiscoveryApi:
         output_directory: str | os.PathLike = None,
         export_format: _ExportFormatOptions = None,
         display_progress: bool = False,
-        use_gpu: bool = True,
+        enable_gpu: bool = True,
     ) -> tuple[dict[str, list[ORFaqsDiscoveredProteinRecord]], int]:
         fasta_sequences = FASTAUtils.parse_file(fasta_file_path)
         discovered_proteins_maps: dict[
@@ -397,7 +396,7 @@ class ORFaqsProteinDiscoveryApi:
                     export_results=export_results,
                     output_directory=current_sequence_output_directory,
                     export_format=export_format,
-                    use_gpu=use_gpu,
+                    enable_gpu=enable_gpu,
                     display_progress=display_progress,
                 )
             )
@@ -446,7 +445,7 @@ class ORFaqsProteinDiscoveryApi:
                 export_results=export_results,
                 export_format=export_format,
                 output_directory=output_directory,
-                use_gpu=enable_gpu,
+                enable_gpu=enable_gpu,
                 display_progress=display_progress,
             )
         else:
@@ -458,6 +457,6 @@ class ORFaqsProteinDiscoveryApi:
                 export_results=export_results,
                 output_directory=output_directory,
                 export_format=export_format,
-                use_gpu=enable_gpu,
+                enable_gpu=enable_gpu,
                 display_progress=display_progress,
             )

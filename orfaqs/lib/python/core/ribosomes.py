@@ -345,7 +345,7 @@ class RibosomeUtils:
     def find_start_codons(
         rna_sequence: str | RNASequence,
         start_codons: list[Codon] = None,
-        use_gpu: bool = False,
+        enable_gpu: bool = False,
     ) -> list[int]:
         """
         Returns a sorted list of base indices from the input sequence, in
@@ -361,7 +361,7 @@ class RibosomeUtils:
             (Optional) A list of codons known to be, or labeled as, start
             codons.
 
-        use_gpu (bool):
+        enable_gpu (bool):
             (Optional) If True, then the GPU is used for finding the start
             codon indices. Otherwise, the CPU is used. The default value is
             False.
@@ -369,7 +369,7 @@ class RibosomeUtils:
         if start_codons is None:
             start_codons = RibosomeUtils.start_codons()
 
-        if ComputeUtils.compute_accelerator_available() and use_gpu:
+        if ComputeUtils.compute_accelerator_available() and enable_gpu:
             return RibosomeUtils._find_codons_gpu(
                 rna_sequence,
                 start_codons,
@@ -384,7 +384,7 @@ class RibosomeUtils:
     def find_stop_codons(
         rna_sequence: str | RNASequence,
         stop_codons: list[Codon] = None,
-        use_gpu: bool = False,
+        enable_gpu: bool = False,
     ) -> list[int]:
         """
         Returns a sorted list of base indices from the input sequence, in
@@ -400,7 +400,7 @@ class RibosomeUtils:
             (Optional) A list of codons known to be, or labeled as, stop
             codons.
 
-        use_gpu (bool):
+        enable_gpu (bool):
             (Optional) If True, then the GPU is used for finding the stop
             codon indices. Otherwise, the CPU is used. The default value is
             False.
@@ -408,7 +408,7 @@ class RibosomeUtils:
         if stop_codons is None:
             stop_codons = RibosomeUtils.stop_codons()
 
-        if ComputeUtils.compute_accelerator_available() and use_gpu:
+        if ComputeUtils.compute_accelerator_available() and enable_gpu:
             return RibosomeUtils._find_codons_gpu(
                 rna_sequence,
                 stop_codons,
@@ -753,7 +753,7 @@ class RibosomeUtils:
         reading_frame: RNAReadingFrame,
         start_codons: list[Codon] = None,
         stop_codons: list[Codon] = None,
-        use_gpu: bool = False,
+        enable_gpu: bool = False,
         display_progress: bool = False,
     ) -> dict[int, Protein]:
         """
@@ -776,7 +776,7 @@ class RibosomeUtils:
             (Optional) A list of codons known to be, or labeled as, stop
             codons.
 
-        use_gpu (bool):
+        enable_gpu (bool):
             (Optional) If True, then the GPU is used for finding the stop
             codon indices. Otherwise, the CPU is used. The default value is
             False.
@@ -802,12 +802,12 @@ class RibosomeUtils:
         start_codon_indices = RibosomeUtils.find_start_codons(
             rna_sequence=rna_sequence,
             start_codons=start_codons,
-            use_gpu=use_gpu,
+            enable_gpu=enable_gpu,
         )
         stop_codon_indices = RibosomeUtils.find_stop_codons(
             rna_sequence=rna_sequence,
             stop_codons=stop_codons,
-            use_gpu=use_gpu,
+            enable_gpu=enable_gpu,
         )
 
         if len(start_codon_indices) == 0 or len(stop_codon_indices) == 0:
@@ -815,7 +815,7 @@ class RibosomeUtils:
 
         #######################################################################
         # Translate all proteins based on the available start/stop codon pairs.
-        if ComputeUtils.compute_accelerator_available() and use_gpu:
+        if ComputeUtils.compute_accelerator_available() and enable_gpu:
             return RibosomeUtils._translate_all_orfs_gpu(
                 rna_sequence=rna_sequence,
                 reading_frame_offset=reading_frame_offset,

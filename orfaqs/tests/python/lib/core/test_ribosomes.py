@@ -435,7 +435,7 @@ class TestRibosomeUtils:
 
         start_codon_indices = RibosomeUtils.find_start_codons(
             sample_rna_sequence_short,
-            use_gpu=True,
+            enable_gpu=True,
         )
         TestRibosomeUtils._validate_found_codons(
             start_codon_indices,
@@ -451,7 +451,7 @@ class TestRibosomeUtils:
 
         start_codon_indices = RibosomeUtils.find_start_codons(
             sample_rna_sequence_long,
-            use_gpu=False,
+            enable_gpu=False,
         )
         TestRibosomeUtils._validate_found_codons(
             start_codon_indices,
@@ -468,7 +468,7 @@ class TestRibosomeUtils:
 
         start_codon_indices = RibosomeUtils.find_start_codons(
             sample_rna_sequence_long,
-            use_gpu=True,
+            enable_gpu=True,
         )
         TestRibosomeUtils._validate_found_codons(
             start_codon_indices,
@@ -532,7 +532,7 @@ class TestRibosomeUtils:
 
         stop_codon_indices = RibosomeUtils.find_stop_codons(
             sample_rna_sequence_short,
-            use_gpu=True,
+            enable_gpu=True,
         )
         TestRibosomeUtils._validate_found_codons(
             stop_codon_indices,
@@ -548,7 +548,7 @@ class TestRibosomeUtils:
 
         stop_codon_indices = RibosomeUtils.find_stop_codons(
             sample_rna_sequence_long,
-            use_gpu=False,
+            enable_gpu=False,
         )
         TestRibosomeUtils._validate_found_codons(
             stop_codon_indices,
@@ -565,7 +565,7 @@ class TestRibosomeUtils:
 
         stop_codon_indices = RibosomeUtils.find_stop_codons(
             sample_rna_sequence_long,
-            use_gpu=True,
+            enable_gpu=True,
         )
         TestRibosomeUtils._validate_found_codons(
             stop_codon_indices,
@@ -621,7 +621,7 @@ class TestRibosomeUtils:
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_short_str,
             reading_frame=RNAReadingFrame.FIRST_FRAME,
-            use_gpu=False,
+            enable_gpu=False,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
             all_orf_proteins,
@@ -638,7 +638,7 @@ class TestRibosomeUtils:
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_short,
             reading_frame=RNAReadingFrame.FIRST_FRAME,
-            use_gpu=False,
+            enable_gpu=False,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
             all_orf_proteins,
@@ -655,7 +655,7 @@ class TestRibosomeUtils:
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_short,
             reading_frame=RNAReadingFrame.FIRST_FRAME,
-            use_gpu=True,
+            enable_gpu=True,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
             all_orf_proteins,
@@ -671,7 +671,7 @@ class TestRibosomeUtils:
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_long,
             reading_frame=RNAReadingFrame.FIRST_FRAME,
-            use_gpu=False,
+            enable_gpu=False,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
             all_orf_proteins,
@@ -688,7 +688,7 @@ class TestRibosomeUtils:
         all_orf_proteins = RibosomeUtils.translate_all_orfs(
             rna_sequence=sample_rna_sequence_long,
             reading_frame=RNAReadingFrame.FIRST_FRAME,
-            use_gpu=True,
+            enable_gpu=True,
         )
         TestRibosomeUtils._validate_translate_all_orfs(
             all_orf_proteins,

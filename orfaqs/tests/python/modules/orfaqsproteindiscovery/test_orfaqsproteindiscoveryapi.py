@@ -426,7 +426,7 @@ class TestORFaqsProteinDiscoveryApi:
         (discovered_proteins, number_proteins) = (
             ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
-                use_gpu=False,
+                enable_gpu=False,
             )
         )
         expected_results_file = (
