@@ -4,6 +4,7 @@ Nucleotides
 
 import enum
 import logging
+
 from abc import ABC, abstractmethod
 
 from orfaqs.lib.python.core.sequence import Sequence
@@ -118,6 +119,13 @@ GUANINE = _Guanine()
 THYMINE = _Thymine()
 URACIL = _Uracil()
 
+_NUCLEOTIDES = [
+    ADENINE,
+    CYTOSINE,
+    GUANINE,
+    THYMINE,
+    URACIL,
+]
 _NUCLEIC_ACID_SYMBOL_LUT = {
     ADENINE.symbol: ADENINE,
     CYTOSINE.symbol: CYTOSINE,
@@ -175,14 +183,25 @@ class GenomicTriplet:
             else:
                 raise_error = True
 
+        if len(nucleotide_str) > GenomicTriplet.NUMBER_BASES:
+            raise_error = True
+
+        nucleotide_str = nucleotide_str.upper()
+        nucleotide_symbols = [str(nucleotide) for nucleotide in _NUCLEOTIDES]
+        for nucleotide in nucleotide_str:
+            if nucleotide not in nucleotide_symbols:
+                raise_error = True
+                break
+
+        if str(URACIL) in nucleotide_str and str(THYMINE) in nucleotide_str:
+            raise_error = True
+
         if raise_error:
             message = '[ERROR] Unsupported input type.'
             _logger.error(message)
             raise ValueError(message)
 
-        self._triplet_str = nucleotide_str[
-            0 : GenomicTriplet.NUMBER_BASES
-        ].upper()
+        self._triplet_str = nucleotide_str.upper()
 
     @property
     def triplet_str(self) -> str:
@@ -257,11 +276,12 @@ class GenomicSequence(Sequence):
     def strand_type(self) -> StrandType:
         return self._strand_type
 
-    def triplet(self, index) -> GenomicTriplet:
+    def triplet(self, index) -> GenomicTriplet | None:
         base_index = index * GenomicTriplet.NUMBER_BASES
-        triplet = self._sequence_str[
-            base_index : base_index + GenomicTriplet.NUMBER_BASES
-        ]
+        end_base_index = base_index + GenomicTriplet.NUMBER_BASES
+        if end_base_index > len(self._sequence_str):
+            return None
+        triplet = self._sequence_str[base_index:end_base_index]
         return GenomicTriplet(triplet)
 
 

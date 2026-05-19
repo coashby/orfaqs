@@ -14,7 +14,7 @@ from orfaqs.lib.python.core.ribosomes import (
 )
 from orfaqs.lib.python.core.codons import Codon
 from orfaqs.lib.python.core.aminoacids import AminoAcid
-from orfaqs.lib.python.core.nucleotides import RNASequence
+from orfaqs.lib.python.core.nucleotides import GenomicTriplet, RNASequence
 from orfaqs.lib.python.core.proteins import Protein
 
 from orfaqs.tests.python._testutils import accelerators
@@ -331,12 +331,11 @@ class TestRibosomeUtils:
         assert all(isinstance(idx, int) for idx in start_stop_indices)
 
     @staticmethod
-    def _validate_read_triplets(triplet_iterator: Iterator[str]):
+    def _validate_read_triplets(triplet_iterator: Iterator[GenomicTriplet]):
         assert hasattr(triplet_iterator, '__iter__')
         triplets = list(triplet_iterator)
         assert all(
-            (isinstance(triplet, str) and len(triplet) == Codon.number_bases())
-            for triplet in triplets
+            (isinstance(triplet, GenomicTriplet)) for triplet in triplets
         )
 
     @staticmethod

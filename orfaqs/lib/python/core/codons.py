@@ -8,6 +8,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from orfaqs.lib.python.core.nucleotides import (
+    GenomicTriplet,
     NucleicAcid,
     NucleotideUtils,
     RNASequence,
@@ -545,17 +546,10 @@ class CodonUtils:
         return _AVAILABLE_CODONS
 
     @staticmethod
-    def base_triplet_to_codon(base_triplet: str | RNASequence):
+    def base_triplet_to_codon(
+        base_triplet: str | GenomicTriplet,
+    ):
         if isinstance(base_triplet, str):
-            base_triplet = RNASequence(base_triplet)
-        if len(base_triplet) != CodonUtils.number_bases_per_codon():
-            message = (
-                '[ERROR] Invalid base_triplet.\n'
-                f"len('{base_triplet}') == {len(base_triplet)}.\n"
-                'Expected len(base_triplet) == '
-                f'{CodonUtils.number_bases_per_codon()}.\n'
-            )
-            _logger.error(message)
-            raise ValueError(message)
+            base_triplet = GenomicTriplet(base_triplet)
 
-        return _BASE_TRIPLET_CODON_LUT.get(base_triplet.sequence_str)
+        return _BASE_TRIPLET_CODON_LUT.get(base_triplet.triplet_str)

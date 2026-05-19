@@ -19,7 +19,7 @@ from orfaqs.lib.python.utils.computeutils import (
 
 from orfaqs.lib.python.core.aminoacids import AminoAcid
 from orfaqs.lib.python.core.codons import Codon, CodonUtils
-from orfaqs.lib.python.core.nucleotides import RNASequence
+from orfaqs.lib.python.core.nucleotides import GenomicTriplet, RNASequence
 from orfaqs.lib.python.core.proteins import Protein
 
 _logger = logging.getLogger(__name__)
@@ -420,37 +420,23 @@ class RibosomeUtils:
         )
 
     @staticmethod
-    def read_triplets(rna_sequence: str | RNASequence) -> Iterator[str]:
-        if not isinstance(rna_sequence, RNASequence):
-            rna_sequence = RNASequence(rna_sequence)
-        i = 0
-        codon_step = Codon.number_bases()
-        # Only read a multiple of codon_step bases.
-        read_length = rna_sequence.sequence_length - (
-            rna_sequence.sequence_length % codon_step
-        )
-        while i < read_length:
-            yield str(rna_sequence[i : (i + codon_step)])
-            i += codon_step
-
-    @staticmethod
-    def read_codons(rna_sequence: str | RNASequence) -> Iterator[Codon]:
+    def read_triplets(
+        rna_sequence: str | RNASequence,
+    ) -> Iterator[GenomicTriplet]:
         if rna_sequence is None or rna_sequence == '':
             return None
 
         if not isinstance(rna_sequence, RNASequence):
             rna_sequence = RNASequence(rna_sequence)
-        i = 0
-        codon_step = Codon.number_bases()
-        # Only read a multiple of codon_step bases.
-        read_length = rna_sequence.sequence_length - (
-            rna_sequence.sequence_length % codon_step
-        )
-        while i < read_length:
-            yield CodonUtils.base_triplet_to_codon(
-                rna_sequence[i : (i + codon_step)]
-            )
-            i += codon_step
+        triplet_index = 0
+        while triplet_index < rna_sequence.number_triplets():
+            yield rna_sequence.triplet(triplet_index)
+            triplet_index += 1
+
+    @staticmethod
+    def read_codons(rna_sequence: str | RNASequence) -> Iterator[Codon]:
+        for triplet in RibosomeUtils.read_triplets(rna_sequence):
+            yield CodonUtils.base_triplet_to_codon(triplet)
 
     @staticmethod
     def _all_orf_lengths_gpu(
