@@ -7,7 +7,7 @@ import pytest
 
 from pytest_datadir.plugin import LazyDataDir
 
-from orfaqs.lib.python.utils.fastautils import (
+from orfaqs.libs.python.utils.fastautils import (
     FASTASequenceType,
     FASTASequence,
     FASTAUtils,

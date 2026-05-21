@@ -9,7 +9,7 @@ import pathlib
 import typing
 
 from datascroller import scroll
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
 
 _logger = logging.getLogger(__name__)
 

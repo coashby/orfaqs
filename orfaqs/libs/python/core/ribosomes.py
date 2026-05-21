@@ -6,21 +6,21 @@ import enum
 import logging
 import numpy as np
 
-import orfaqs.lib.python.core.aminoacids as _aminoacids
-import orfaqs.lib.python.core.codons as _codons
+import orfaqs.libs.python.core.aminoacids as _aminoacids
+import orfaqs.libs.python.core.codons as _codons
 
 from collections.abc import Iterator
 from tqdm import tqdm
 
-from orfaqs.lib.python.utils.computeutils import (
+from orfaqs.libs.python.utils.computeutils import (
     ComputeAccelerator,
     ComputeUtils,
 )
 
-from orfaqs.lib.python.core.aminoacids import AminoAcid
-from orfaqs.lib.python.core.codons import Codon, CodonUtils
-from orfaqs.lib.python.core.nucleotides import GenomicTriplet, RNASequence
-from orfaqs.lib.python.core.proteins import Protein
+from orfaqs.libs.python.core.aminoacids import AminoAcid
+from orfaqs.libs.python.core.codons import Codon, CodonUtils
+from orfaqs.libs.python.core.nucleotides import GenomicTriplet, RNASequence
+from orfaqs.libs.python.core.proteins import Protein
 
 _logger = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ class RibosomeUtils:
         compute_accelerator = ComputeUtils.get_default_compute_accelerator()
         if ComputeUtils.is_metal_compute_accelerator(compute_accelerator):
             compute_accelerator.load_kernel(
-                'orfaqs/lib/metal/core/ribosomes.metal'
+                'orfaqs/libs/metal/core/ribosomes.metal'
             )
 
         return compute_accelerator

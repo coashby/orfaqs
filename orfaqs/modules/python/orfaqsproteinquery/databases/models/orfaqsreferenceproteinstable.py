@@ -13,7 +13,7 @@ from orfaqs.modules.python.orfaqsproteinquery.databases.orfaqsproteintableutils 
     ORFaqsProteinTableUtils,
 )
 
-from orfaqs.lib.python.utils.databaseutils import (
+from orfaqs.libs.python.utils.databaseutils import (
     BaseTable,
     sqlalchemy,
     SqlAlchemyUtils,

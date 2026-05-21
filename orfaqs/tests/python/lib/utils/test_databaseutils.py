@@ -6,7 +6,7 @@ import logging
 import os
 import pandas as pd
 import pytest
-from orfaqs.lib.python.utils.databaseutils import (
+from orfaqs.libs.python.utils.databaseutils import (
     BaseTable,
     DatabaseConnectionOptions,
     PostgresDatabaseUtils,

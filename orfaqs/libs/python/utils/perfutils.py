@@ -19,7 +19,7 @@ from datetime import datetime
 from enum import Enum
 from threading import Lock, Thread
 
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
 
 _logger = logging.getLogger(__name__)
 

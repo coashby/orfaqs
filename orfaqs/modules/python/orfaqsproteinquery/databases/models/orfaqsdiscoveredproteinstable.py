@@ -12,7 +12,7 @@ from orfaqs.modules.python.orfaqsrecords.orfaqsrecords import (
     ORFaqsDiscoveredProteinRecordKeys,
 )
 
-from orfaqs.lib.python.utils.databaseutils import (
+from orfaqs.libs.python.utils.databaseutils import (
     BaseTable,
     sqlalchemy,
     SqlAlchemyUtils,

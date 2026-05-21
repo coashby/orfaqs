@@ -1,4 +1,4 @@
-import orfaqs.lib.python.core.aminoacids as aminoacids
+import orfaqs.libs.python.core.aminoacids as aminoacids
 import pandas as pd
 import pytest
 

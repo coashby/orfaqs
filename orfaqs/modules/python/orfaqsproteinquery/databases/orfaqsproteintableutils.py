@@ -2,7 +2,7 @@ import enum
 import logging
 
 
-from orfaqs.lib.python.core.nucleotides import NucleotideUtils
+from orfaqs.libs.python.core.nucleotides import NucleotideUtils
 
 _logger = logging.getLogger(__name__)
 

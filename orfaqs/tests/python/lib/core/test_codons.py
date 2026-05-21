@@ -1,4 +1,4 @@
-import orfaqs.lib.python.core.codons as codons
+import orfaqs.libs.python.core.codons as codons
 import pandas as pd
 import pytest
 

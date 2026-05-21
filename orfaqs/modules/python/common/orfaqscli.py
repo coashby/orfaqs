@@ -8,12 +8,12 @@ import typer
 
 from typing import Callable
 
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
 
 from abc import ABC, abstractmethod
 
-from orfaqs.lib.python.utils.jsonutils import JsonUtils
-from orfaqs.lib.python.utils.perfutils import PerfProfiler
+from orfaqs.libs.python.utils.jsonutils import JsonUtils
+from orfaqs.libs.python.utils.perfutils import PerfProfiler
 
 
 class ORFaqsCliExitCodes:
