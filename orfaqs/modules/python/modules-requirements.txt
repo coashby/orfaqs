@@ -1,0 +1,2 @@
+-r ../../libs/python/libs-requirements.txt
+typer
