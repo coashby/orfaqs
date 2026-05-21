@@ -1,19 +1,5 @@
-asitop
-datascroller
-disutils
-GPUtil
-openpyxl
-pandas
+-r libs/python/libs-requirements.txt
+-r modules/python/modules-requirements.txt
+-r tests/python/tests-requirements.txt
 pre-commit
-psycopg2-binary
-pyinstaller
-pyobjc; sys_platform == 'darwin'
-pytest
-pytest-cov
-pytest-datadir
-pytest-order
 ruff
-setuptools
-sqlalchemy
-tqdm
-typer

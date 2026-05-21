@@ -8,15 +8,15 @@ import os
 import pathlib
 import re
 
-from orfaqs.lib.python.core.proteins import Protein
-from orfaqs.lib.python.core.nucleotides import (
+from orfaqs.libs.python.core.proteins import Protein
+from orfaqs.libs.python.core.nucleotides import (
     DNASequence,
     RNASequence,
     NucleotideUtils,
 )
-from orfaqs.lib.python.core.sequence import Sequence
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
-from orfaqs.lib.python.utils.jsonutils import JsonUtils
+from orfaqs.libs.python.core.sequence import Sequence
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.jsonutils import JsonUtils
 
 _logger = logging.getLogger(__name__)
 

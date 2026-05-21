@@ -14,29 +14,29 @@ from orfaqs.modules.python.orfaqsrecords.orfaqsrecords import (
     ORFaqsRecordUtils,
 )
 
-from orfaqs.lib.python.core.codons import Codon
-from orfaqs.lib.python.core.enzymes import RNAPolymerase
-from orfaqs.lib.python.utils.fastautils import FASTAUtils
-from orfaqs.lib.python.core.nucleotides import (
+from orfaqs.libs.python.core.codons import Codon
+from orfaqs.libs.python.core.enzymes import RNAPolymerase
+from orfaqs.libs.python.utils.fastautils import FASTAUtils
+from orfaqs.libs.python.core.nucleotides import (
     DNASequence,
     StrandType,
     GenomicSequence,
     NucleotideUtils,
     RNASequence,
 )
-from orfaqs.lib.python.core.proteins import Protein
-from orfaqs.lib.python.core.ribosomes import (
+from orfaqs.libs.python.core.proteins import Protein
+from orfaqs.libs.python.core.ribosomes import (
     RibosomeUtils,
     RNAReadingFrame,
 )
 
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
-from orfaqs.lib.python.utils.pandasutils import (
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.pandasutils import (
     DataFrameExportFormat,
     DataFrameExportFormatOptions,
     PandasUtils,
 )
-from orfaqs.lib.python.utils.perfutils import PerfProfiler
+from orfaqs.libs.python.utils.perfutils import PerfProfiler
 
 
 _logger = logging.getLogger(__name__)

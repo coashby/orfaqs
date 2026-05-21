@@ -4,7 +4,7 @@ Proteins
 
 import logging
 
-from orfaqs.lib.python.core.aminoacids import (
+from orfaqs.libs.python.core.aminoacids import (
     AminoAcid,
     AminoAcidSequence,
 )

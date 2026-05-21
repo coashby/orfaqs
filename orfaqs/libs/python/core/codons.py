@@ -7,7 +7,7 @@ import logging
 
 from abc import ABC, abstractmethod
 
-from orfaqs.lib.python.core.nucleotides import (
+from orfaqs.libs.python.core.nucleotides import (
     GenomicTriplet,
     NucleicAcid,
     NucleotideUtils,

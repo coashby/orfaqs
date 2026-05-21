@@ -4,8 +4,8 @@ import os
 
 from numpy.typing import ArrayLike
 
-from orfaqs.lib.python.compute.compute_accelerator import ComputeAccelerator
-from orfaqs.lib.python.utils.platformutils import PlatformUtils
+from orfaqs.libs.python.compute.compute_accelerator import ComputeAccelerator
+from orfaqs.libs.python.utils.platformutils import PlatformUtils
 
 _logger = logging.getLogger(__name__)
 

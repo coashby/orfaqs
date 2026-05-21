@@ -2,7 +2,7 @@
 Enzymes
 """
 
-from orfaqs.lib.python.core.nucleotides import (
+from orfaqs.libs.python.core.nucleotides import (
     DNASequence,
     StrandType,
     NucleicAcid,
@@ -11,7 +11,7 @@ from orfaqs.lib.python.core.nucleotides import (
     THYMINE,
     URACIL,
 )
-from orfaqs.lib.python.core.sequence import SequenceUtils
+from orfaqs.libs.python.core.sequence import SequenceUtils
 
 
 class RNAPolymerase:

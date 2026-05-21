@@ -5,7 +5,7 @@ Contains definitions for all genetically encoded amino acids.
 
 from abc import ABC, abstractmethod
 
-from orfaqs.lib.python.core.sequence import Sequence
+from orfaqs.libs.python.core.sequence import Sequence
 
 
 class AminoAcid(ABC):

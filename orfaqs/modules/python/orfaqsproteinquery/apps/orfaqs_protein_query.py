@@ -18,7 +18,7 @@ from orfaqs.modules.python.orfaqsproteinquery.orfaqsproteinquery import (
     ORFaqsProteinQueryExportFormatOptions,
     ORFaqsProteinQueryApi,
 )
-from orfaqs.lib.python.utils.pandasutils import PandasUtils
+from orfaqs.libs.python.utils.pandasutils import PandasUtils
 
 _logger = logging.getLogger(__name__)
 app = ORFaqsCli._new_app_typer()

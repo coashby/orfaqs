@@ -7,7 +7,7 @@ import logging
 
 from abc import ABC, abstractmethod
 
-from orfaqs.lib.python.core.sequence import Sequence
+from orfaqs.libs.python.core.sequence import Sequence
 
 _logger = logging.getLogger(__name__)
 

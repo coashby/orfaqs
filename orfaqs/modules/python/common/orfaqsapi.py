@@ -3,9 +3,9 @@ import pathlib
 
 from datetime import datetime
 
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
-from orfaqs.lib.python.utils.jsonutils import JsonUtils
-from orfaqs.lib.python.utils.platformutils import PlatformUtils
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.jsonutils import JsonUtils
+from orfaqs.libs.python.utils.platformutils import PlatformUtils
 
 
 class ORFaqsApiSessionData:

@@ -6,17 +6,17 @@ import abc
 import logging
 import pandas as pd
 
-from orfaqs.lib.python.core.enzymes import RNAPolymerase
-from orfaqs.lib.python.core.nucleotides import (
+from orfaqs.libs.python.core.enzymes import RNAPolymerase
+from orfaqs.libs.python.core.nucleotides import (
     GenomicSequence,
     NucleotideUtils,
     RNASequence,
     StrandType,
 )
-from orfaqs.lib.python.core.proteins import Protein
-from orfaqs.lib.python.core.ribosomes import RNAReadingFrame
+from orfaqs.libs.python.core.proteins import Protein
+from orfaqs.libs.python.core.ribosomes import RNAReadingFrame
 
-from orfaqs.lib.python.utils.jsonutils import JsonUtils
+from orfaqs.libs.python.utils.jsonutils import JsonUtils
 
 _logger = logging.getLogger(__name__)
 

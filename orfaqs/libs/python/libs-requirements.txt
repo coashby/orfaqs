@@ -1,0 +1,11 @@
+asitop
+datascroller
+GPUtil
+psycopg2-binary
+numpy
+openpyxl
+pandas
+pyobjc; sys_platform == 'darwin'
+setuptools
+sqlalchemy
+tqdm

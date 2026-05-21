@@ -5,17 +5,17 @@ import pytest
 from collections.abc import Iterator
 from pytest_datadir.plugin import LazyDataDir
 
-import orfaqs.lib.python.core.codons as _codons
+import orfaqs.libs.python.core.codons as _codons
 
-from orfaqs.lib.python.core.ribosomes import (
+from orfaqs.libs.python.core.ribosomes import (
     Ribosome,
     RibosomeUtils,
     RNAReadingFrame,
 )
-from orfaqs.lib.python.core.codons import Codon
-from orfaqs.lib.python.core.aminoacids import AminoAcid
-from orfaqs.lib.python.core.nucleotides import GenomicTriplet, RNASequence
-from orfaqs.lib.python.core.proteins import Protein
+from orfaqs.libs.python.core.codons import Codon
+from orfaqs.libs.python.core.aminoacids import AminoAcid
+from orfaqs.libs.python.core.nucleotides import GenomicTriplet, RNASequence
+from orfaqs.libs.python.core.proteins import Protein
 
 from orfaqs.tests.python._testutils import accelerators
 

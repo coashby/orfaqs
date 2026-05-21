@@ -8,7 +8,7 @@ import pandas as pd
 import pathlib
 import typing
 
-from orfaqs.lib.python.core.proteins import Protein
+from orfaqs.libs.python.core.proteins import Protein
 
 from orfaqs.modules.python.common.orfaqsapi import ORFaqsApi
 
@@ -30,18 +30,18 @@ from orfaqs.modules.python.orfaqsrecords.orfaqsrecords import (
     ORFaqsRecordUtils,
 )
 
-from orfaqs.lib.python.utils.databaseutils import (
+from orfaqs.libs.python.utils.databaseutils import (
     BaseTable,
     PostgresDatabaseUtils,
 )
-from orfaqs.lib.python.utils.directoryutils import DirectoryUtils
-from orfaqs.lib.python.utils.fastautils import (
+from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
+from orfaqs.libs.python.utils.fastautils import (
     FASTAExportFormat,
     FASTASequenceType,
     FASTAUtils,
 )
-from orfaqs.lib.python.utils.jsonutils import JsonUtils
-from orfaqs.lib.python.utils.pandasutils import (
+from orfaqs.libs.python.utils.jsonutils import JsonUtils
+from orfaqs.libs.python.utils.pandasutils import (
     DataFrameExportFormat,
     PandasUtils,
 )
