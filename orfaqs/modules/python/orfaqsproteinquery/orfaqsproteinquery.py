@@ -13,7 +13,7 @@ from orfaqs.libs.python.core.proteins import Protein
 from orfaqs.modules.python.common.orfaqsapi import ORFaqsApi
 
 from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import (
-    ORFaqsProteinDiscoveryApi,
+    ORFaqsProteinsDiscoveryApi,
 )
 from orfaqs.modules.python.orfaqsproteinquery.databases.orfaqsproteintableutils import (
     ORFaqsProteinTableType,
@@ -698,7 +698,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
         if table is None:
             table = ORFaqsProteinQueryApi.default_table()
         discovered_proteins_files = (
-            ORFaqsProteinDiscoveryApi.find_discovered_protein_files(proteins)
+            ORFaqsProteinsDiscoveryApi.find_discovered_protein_files(proteins)
         )
         if len(discovered_proteins_files) > 0:
             ORFaqsProteinQueryApi._load_discovered_proteins(

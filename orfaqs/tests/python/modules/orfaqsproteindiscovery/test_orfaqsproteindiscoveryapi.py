@@ -7,7 +7,7 @@ from pytest_datadir.plugin import LazyDataDir
 from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import (
     GenomicSequence,
     NucleotideUtils,
-    ORFaqsProteinDiscoveryApi,
+    ORFaqsProteinsDiscoveryApi,
     ORFaqsDiscoveredProteinRecord,
     RNAReadingFrame,
 )
@@ -87,17 +87,17 @@ def discovered_proteins_expected_results_dir(
 class TestORFaqsProteinDiscoveryApi:
     @staticmethod
     def test_default_export_format():
-        assert ORFaqsProteinDiscoveryApi.default_export_format() == 'csv'
+        assert ORFaqsProteinsDiscoveryApi.default_export_format() == 'csv'
 
     @staticmethod
     def test_default_output_directory():
-        assert ORFaqsProteinDiscoveryApi.default_output_directory() == './'
+        assert ORFaqsProteinsDiscoveryApi.default_output_directory() == './'
 
     @staticmethod
     def test_available_export_formats():
         expected_export_formats = ['csv', 'json', 'xlsx']
         available_export_formats = sorted(
-            ORFaqsProteinDiscoveryApi.available_export_formats()
+            ORFaqsProteinsDiscoveryApi.available_export_formats()
         )
         assert available_export_formats == expected_export_formats
 
@@ -115,7 +115,7 @@ class TestORFaqsProteinDiscoveryApi:
         ]
         assert (
             expected_exported_dataframe_keys
-            == ORFaqsProteinDiscoveryApi.exported_dataframe_keys()
+            == ORFaqsProteinsDiscoveryApi.exported_dataframe_keys()
         )
 
     @staticmethod
@@ -128,7 +128,7 @@ class TestORFaqsProteinDiscoveryApi:
             'discovered-proteins-2.csv',
         ]
         discovered_proteins_files = (
-            ORFaqsProteinDiscoveryApi.find_discovered_protein_files(
+            ORFaqsProteinsDiscoveryApi.find_discovered_protein_files(
                 discovered_proteins_samples_directory
             )
         )
@@ -144,7 +144,8 @@ class TestORFaqsProteinDiscoveryApi:
     @staticmethod
     def test_unreferenced_uid():
         assert (
-            ORFaqsProteinDiscoveryApi.unreferenced_uid() == 'unknown_reference'
+            ORFaqsProteinsDiscoveryApi.unreferenced_uid()
+            == 'unknown_reference'
         )
 
     @staticmethod
@@ -187,7 +188,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_dna_sequence,
             )
         )
@@ -207,7 +208,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_dna_sequence_str,
             )
         )
@@ -227,7 +228,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
             )
         )
@@ -247,7 +248,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
                 frames=[RNAReadingFrame.FIRST_FRAME],
             )
@@ -268,7 +269,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
                 frames=[RNAReadingFrame.SECOND_FRAME],
             )
@@ -289,7 +290,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
                 frames=[RNAReadingFrame.THIRD_FRAME],
             )
@@ -310,7 +311,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
                 include_reverse_complement=False,
             )
@@ -333,7 +334,7 @@ class TestORFaqsProteinDiscoveryApi:
         export_format: str,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_sequence,
                 export_results=True,
                 output_directory=output_directory,
@@ -424,7 +425,7 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_sequence(
                 genomic_sequence=input_rna_sequence,
                 enable_gpu=False,
             )
@@ -445,8 +446,8 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_fasta_file(
-                fasta_file_path=input_dna_sequence_fasta_file
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_fasta_file(
+                genomic_sequence=input_dna_sequence_fasta_file
             )
         )
         expected_results_file = (
@@ -465,8 +466,8 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins_from_fasta_file(
-                fasta_file_path=input_dna_sequence_fasta_file,
+            ORFaqsProteinsDiscoveryApi.discover_proteins_from_fasta_file(
+                genomic_sequence=input_dna_sequence_fasta_file,
                 export_results=True,
             )
         )
@@ -486,8 +487,8 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins(
-                input_sequence=input_rna_sequence_str
+            ORFaqsProteinsDiscoveryApi.discover_proteins(
+                genomic_sequence=input_rna_sequence_str
             )
         )
         expected_results_file = (
@@ -506,8 +507,8 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins(
-                input_sequence=input_rna_sequence_str,
+            ORFaqsProteinsDiscoveryApi.discover_proteins(
+                genomic_sequence=input_rna_sequence_str,
                 export_results=True,
             )
         )
@@ -527,8 +528,8 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins(
-                input_sequence=input_dna_sequence_fasta_file
+            ORFaqsProteinsDiscoveryApi.discover_proteins(
+                genomic_sequence=input_dna_sequence_fasta_file
             )
         )
         expected_results_file = (
@@ -547,8 +548,8 @@ class TestORFaqsProteinDiscoveryApi:
         discovered_proteins_expected_results_dir: pathlib.Path,
     ):
         (discovered_proteins, number_proteins) = (
-            ORFaqsProteinDiscoveryApi.discover_proteins(
-                input_sequence=input_dna_sequence_fasta_file,
+            ORFaqsProteinsDiscoveryApi.discover_proteins(
+                genomic_sequence=input_dna_sequence_fasta_file,
                 export_results=True,
             )
         )

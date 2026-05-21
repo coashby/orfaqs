@@ -5,13 +5,13 @@ Contains definitions for all 64 codons.
 
 import logging
 
+from pydantic_core import core_schema
 from abc import ABC, abstractmethod
 
 from orfaqs.libs.python.core.nucleotides import (
     GenomicTriplet,
     NucleicAcid,
     NucleotideUtils,
-    RNASequence,
 )
 
 
@@ -21,12 +21,17 @@ _logger = logging.getLogger(__name__)
 class Codon(ABC):
     """Codon"""
 
-    _NUMBER_BASES_PER_CODON = 3
-    _sequence: RNASequence = None
+    _sequence: GenomicTriplet = None
 
     @abstractmethod
     def __init__(self, *args):
         pass
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type, handler) -> str:
+        return core_schema.no_info_after_validator_function(
+            cls.validate, core_schema.str_schema()
+        )
 
     def __hash__(self) -> int:
         return hash(self.sequence_str)
@@ -50,337 +55,350 @@ class Codon(ABC):
     def __str__(self) -> str:
         return self.sequence_str
 
+    @classmethod
+    def validate(cls, sequence: str) -> str:
+        # No other initializer exists for Codons.
+        if (
+            not isinstance(sequence, str)
+            or len(sequence) != GenomicTriplet.NUMBER_BASES
+            or not NucleotideUtils.is_rna_sequence(sequence)
+        ):
+            message = '[ERROR] Invalid str input for Condon.'
+            raise ValueError(message)
+
+        return sequence
+
     @property
-    def bases(self) -> RNASequence:
+    def bases(self) -> GenomicTriplet:
         return self._sequence
 
     @property
     def sequence_str(self) -> str:
-        return self._sequence.sequence_str
+        return self._sequence.triplet_str
 
     @staticmethod
     def number_bases() -> int:
-        return Codon._NUMBER_BASES_PER_CODON
+        return GenomicTriplet.NUMBER_BASES
 
 
 class _UUU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UUU')
+        self._sequence = GenomicTriplet('UUU')
 
 
 class _UUC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UUC')
+        self._sequence = GenomicTriplet('UUC')
 
 
 class _UUA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UUA')
+        self._sequence = GenomicTriplet('UUA')
 
 
 class _UUG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UUG')
+        self._sequence = GenomicTriplet('UUG')
 
 
 class _UCU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UCU')
+        self._sequence = GenomicTriplet('UCU')
 
 
 class _UCC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UCC')
+        self._sequence = GenomicTriplet('UCC')
 
 
 class _UCA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UCA')
+        self._sequence = GenomicTriplet('UCA')
 
 
 class _UCG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UCG')
+        self._sequence = GenomicTriplet('UCG')
 
 
 class _UAU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UAU')
+        self._sequence = GenomicTriplet('UAU')
 
 
 class _UAC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UAC')
+        self._sequence = GenomicTriplet('UAC')
 
 
 class _UAA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UAA')
+        self._sequence = GenomicTriplet('UAA')
 
 
 class _UAG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UAG')
+        self._sequence = GenomicTriplet('UAG')
 
 
 class _UGU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UGU')
+        self._sequence = GenomicTriplet('UGU')
 
 
 class _UGC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UGC')
+        self._sequence = GenomicTriplet('UGC')
 
 
 class _UGA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UGA')
+        self._sequence = GenomicTriplet('UGA')
 
 
 class _UGG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('UGG')
+        self._sequence = GenomicTriplet('UGG')
 
 
 class _CUU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CUU')
+        self._sequence = GenomicTriplet('CUU')
 
 
 class _CUC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CUC')
+        self._sequence = GenomicTriplet('CUC')
 
 
 class _CUA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CUA')
+        self._sequence = GenomicTriplet('CUA')
 
 
 class _CUG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CUG')
+        self._sequence = GenomicTriplet('CUG')
 
 
 class _CCU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CCU')
+        self._sequence = GenomicTriplet('CCU')
 
 
 class _CCC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CCC')
+        self._sequence = GenomicTriplet('CCC')
 
 
 class _CCA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CCA')
+        self._sequence = GenomicTriplet('CCA')
 
 
 class _CCG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CCG')
+        self._sequence = GenomicTriplet('CCG')
 
 
 class _CAU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CAU')
+        self._sequence = GenomicTriplet('CAU')
 
 
 class _CAC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CAC')
+        self._sequence = GenomicTriplet('CAC')
 
 
 class _CAA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CAA')
+        self._sequence = GenomicTriplet('CAA')
 
 
 class _CAG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CAG')
+        self._sequence = GenomicTriplet('CAG')
 
 
 class _CGU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CGU')
+        self._sequence = GenomicTriplet('CGU')
 
 
 class _CGC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CGC')
+        self._sequence = GenomicTriplet('CGC')
 
 
 class _CGA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CGA')
+        self._sequence = GenomicTriplet('CGA')
 
 
 class _CGG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('CGG')
+        self._sequence = GenomicTriplet('CGG')
 
 
 class _AUU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AUU')
+        self._sequence = GenomicTriplet('AUU')
 
 
 class _AUC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AUC')
+        self._sequence = GenomicTriplet('AUC')
 
 
 class _AUA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AUA')
+        self._sequence = GenomicTriplet('AUA')
 
 
 class _AUG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AUG')
+        self._sequence = GenomicTriplet('AUG')
 
 
 class _ACU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('ACU')
+        self._sequence = GenomicTriplet('ACU')
 
 
 class _ACC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('ACC')
+        self._sequence = GenomicTriplet('ACC')
 
 
 class _ACA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('ACA')
+        self._sequence = GenomicTriplet('ACA')
 
 
 class _ACG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('ACG')
+        self._sequence = GenomicTriplet('ACG')
 
 
 class _AAU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AAU')
+        self._sequence = GenomicTriplet('AAU')
 
 
 class _AAC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AAC')
+        self._sequence = GenomicTriplet('AAC')
 
 
 class _AAA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AAA')
+        self._sequence = GenomicTriplet('AAA')
 
 
 class _AAG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AAG')
+        self._sequence = GenomicTriplet('AAG')
 
 
 class _AGU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AGU')
+        self._sequence = GenomicTriplet('AGU')
 
 
 class _AGC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AGC')
+        self._sequence = GenomicTriplet('AGC')
 
 
 class _AGA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AGA')
+        self._sequence = GenomicTriplet('AGA')
 
 
 class _AGG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('AGG')
+        self._sequence = GenomicTriplet('AGG')
 
 
 class _GUU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GUU')
+        self._sequence = GenomicTriplet('GUU')
 
 
 class _GUC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GUC')
+        self._sequence = GenomicTriplet('GUC')
 
 
 class _GUA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GUA')
+        self._sequence = GenomicTriplet('GUA')
 
 
 class _GUG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GUG')
+        self._sequence = GenomicTriplet('GUG')
 
 
 class _GCU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GCU')
+        self._sequence = GenomicTriplet('GCU')
 
 
 class _GCC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GCC')
+        self._sequence = GenomicTriplet('GCC')
 
 
 class _GCA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GCA')
+        self._sequence = GenomicTriplet('GCA')
 
 
 class _GCG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GCG')
+        self._sequence = GenomicTriplet('GCG')
 
 
 class _GAU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GAU')
+        self._sequence = GenomicTriplet('GAU')
 
 
 class _GAC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GAC')
+        self._sequence = GenomicTriplet('GAC')
 
 
 class _GAA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GAA')
+        self._sequence = GenomicTriplet('GAA')
 
 
 class _GAG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GAG')
+        self._sequence = GenomicTriplet('GAG')
 
 
 class _GGU(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GGU')
+        self._sequence = GenomicTriplet('GGU')
 
 
 class _GGC(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GGC')
+        self._sequence = GenomicTriplet('GGC')
 
 
 class _GGA(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GGA')
+        self._sequence = GenomicTriplet('GGA')
 
 
 class _GGG(Codon):
     def __init__(self):
-        self._sequence = RNASequence('GGG')
+        self._sequence = GenomicTriplet('GGG')
 
 
 # Constants

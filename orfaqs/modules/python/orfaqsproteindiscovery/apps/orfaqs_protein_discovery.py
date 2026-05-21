@@ -12,7 +12,8 @@ from orfaqs.modules.python.common.orfaqscli import (
 )
 from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import (
     _ExportFormatOptions,
-    ORFaqsProteinDiscoveryApi,
+    ORFaqsProteinsDiscoveryApi,
+    ORFaqsDiscoverProteinsArgsModel,
 )
 
 
@@ -33,7 +34,7 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
     )
     @staticmethod
     def discover_proteins(
-        input_sequence: Annotated[
+        genomic_sequence: Annotated[
             str,
             typer.Argument(
                 help=(
@@ -58,7 +59,7 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
         job_id: Annotated[ORFaqsCli._job_id_annotation()] = None,
         export_format: Annotated[
             ORFaqsCli._export_format_annotation(_ExportFormatOptions)
-        ] = ORFaqsProteinDiscoveryApi.default_export_format(),
+        ] = ORFaqsProteinsDiscoveryApi.default_export_format(),
         include_reverse_complement: Annotated[
             bool,
             typer.Option(
@@ -78,11 +79,11 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
     ):
         ui_kwargs = ORFaqsCli._process_ui_kwargs(**ctx.params)
 
-        if ui_kwargs.get('input_sequence') is None:
+        if ui_kwargs.get('genomic_sequence') is None:
             message = (
-                '[ERROR] No input sequence or sequence files were specified. '
-                'An input sequence or sequence file must be given either '
-                'through its positional argument, or in the launch json.'
+                '[ERROR] No genomic sequence or files were specified. An '
+                'input sequence or sequence file must be given either through '
+                'its positional argument, or in the launch json.'
             )
             _logger.error(message)
             typer.echo(ctx.get_help())
@@ -93,7 +94,11 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
             ui_kwargs['output_directory'] = (
                 ORFaqsProteinDiscoveryCli.default_output_directory()
             )
-        ORFaqsProteinDiscoveryApi.discover_proteins(**ui_kwargs)
+
+        discover_protein_args = ORFaqsDiscoverProteinsArgsModel(**ui_kwargs)
+        ORFaqsProteinsDiscoveryApi.discover_proteins(
+            **discover_protein_args.model_dump()
+        )
 
     @staticmethod
     def _run():
