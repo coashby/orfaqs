@@ -38,6 +38,8 @@ class PandasUtils:
     def read_file_as_dataframe(
         file_path: (str | os.PathLike),
         raise_error: bool = True,
+        include_index_column: bool = False,
+        rest_index_column: bool = False,
     ) -> pd.DataFrame:
         results_dataframe: pd.DataFrame = None
         file_type = DirectoryUtils.make_path_object(file_path).suffix.lower()
@@ -58,7 +60,11 @@ class PandasUtils:
                 _logger.error(message)
                 raise ValueError(message)
 
-        if results_dataframe is not None:
+        if (
+            results_dataframe is not None
+            and include_index_column
+            and rest_index_column
+        ):
             results_dataframe.reset_index(inplace=True)
 
         return results_dataframe
