@@ -6,10 +6,14 @@ import os
 import pathlib
 import re
 import shutil
+import tempfile
+import zipfile
 
 
 class DirectoryUtils:
     """DirectoryUtils"""
+
+    DEFAULT_ZIP_INCREMENTAL_COMPRESSION_CHUNK_SIZE_BYTES = 64 * 1024 * 1024
 
     @staticmethod
     def is_directory(path) -> bool:
@@ -34,6 +38,8 @@ class DirectoryUtils:
 
         if isinstance(path, list):
             path = '/'.join(path)
+        elif isinstance(path, tempfile.TemporaryDirectory):
+            path = path.name
 
         return pathlib.Path(path)
 
@@ -115,3 +121,95 @@ class DirectoryUtils:
             clean_path = clean_path / _sanitize_name(sub_path_name)
 
         return clean_path
+
+    @staticmethod
+    def save_as_file(
+        file_path: str | pathlib.Path,
+        file_contents: any,
+        binary_data: bool = False,
+    ) -> pathlib.Path:
+        file_path = DirectoryUtils.make_path_object(file_path)
+        write_mode = 'wb' if binary_data else 'w'
+        with open(file_path, write_mode) as o_file:
+            shutil.copyfileobj(file_contents, o_file)
+
+        return file_path
+
+    @staticmethod
+    def temporary_directory() -> tempfile.TemporaryDirectory:
+        return tempfile.TemporaryDirectory()
+
+    @staticmethod
+    def file_stats(file_path: any) -> os.stat_result:
+        file_path: pathlib.Path = DirectoryUtils.make_path_object(file_path)
+
+        return file_path.stat()
+
+    @staticmethod
+    def file_size(file: any) -> int:
+        return DirectoryUtils.file_stats(file).st_size
+
+    @staticmethod
+    def path_size(path: str | pathlib.Path) -> int:
+        path = DirectoryUtils.make_path_object(path)
+        if not path.exists():
+            return None
+
+        file_list: list[pathlib.Path] = []
+        if DirectoryUtils.is_directory(path):
+            file_list = DirectoryUtils.glob_files(path, recursive=True)
+        else:
+            file_list.append(path)
+
+        total_path_size: int = 0
+        for file_path in file_list:
+            total_path_size += DirectoryUtils.file_size(file_path)
+
+        return total_path_size
+
+    @staticmethod
+    def cleanup_temporary_directory(
+        temporary_directory: tempfile.TemporaryDirectory,
+    ):
+        temporary_directory.cleanup()
+
+    @staticmethod
+    def zip_path(
+        source_path: str | pathlib.Path,
+        destination_path: str | pathlib.Path = None,
+        chunk_size_bytes: int = None,
+    ) -> pathlib.Path:
+        if not DirectoryUtils.path_exists(source_path):
+            return None
+        source_path = DirectoryUtils.make_path_object(source_path)
+        if destination_path is None:
+            destination_path = source_path.with_suffix('.zip')
+
+        source_path = DirectoryUtils.make_path_object(source_path)
+        file_list: list[pathlib.Path] = []
+        folder_path = None
+        if DirectoryUtils.is_directory(source_path):
+            file_list = DirectoryUtils.glob_files(source_path, recursive=True)
+            folder_path = source_path
+        else:
+            file_list.append(source_path)
+            folder_path = source_path.parent
+
+        if chunk_size_bytes is None:
+            chunk_size_bytes = DirectoryUtils.DEFAULT_ZIP_INCREMENTAL_COMPRESSION_CHUNK_SIZE_BYTES
+
+        with zipfile.ZipFile(
+            destination_path, 'w', zipfile.ZIP_DEFLATED
+        ) as zipfile_archive:
+            for file_path in file_list:
+                # Determine the relative path of the file.
+                relative_path = os.path.relpath(file_path, folder_path)
+                with zipfile_archive.open(
+                    relative_path, mode='w'
+                ) as o_archive_stream:
+                    with open(file_path, 'rb') as i_file_stream:
+                        # Use the specified chunk size to stream the archive.
+                        while chunk := i_file_stream.read(chunk_size_bytes):
+                            o_archive_stream.write(chunk)
+
+        return destination_path
