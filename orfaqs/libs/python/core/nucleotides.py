@@ -143,7 +143,7 @@ _NUCLEIC_ACID_NAME_LUT = {
 }
 
 
-class StrandType(enum.Enum):
+class StrandType(enum.StrEnum):
     NEGATIVE_STRAND = 'negative_strand'
     POSITIVE_STRAND = 'positive_strand'
     SINGLE_STRANDED = 'single_stranded'

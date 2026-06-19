@@ -5,6 +5,7 @@ psycopg2-binary
 numpy
 openpyxl
 pandas
+Pydantic
 pyobjc; sys_platform == 'darwin'
 setuptools
 sqlalchemy

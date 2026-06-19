@@ -8,7 +8,9 @@ import os
 import pathlib
 
 from tqdm import tqdm
-
+from orfaqs.modules.python.orfaqsproteindiscovery.models.datamodels import (
+    DiscoverProteinsDataModel,
+)
 from orfaqs.modules.python.orfaqsrecords.orfaqsrecords import (
     ORFaqsDiscoveredProteinRecord,
     ORFaqsRecordUtils,
@@ -33,7 +35,6 @@ from orfaqs.libs.python.core.ribosomes import (
 from orfaqs.libs.python.utils.directoryutils import DirectoryUtils
 from orfaqs.libs.python.utils.pandasutils import (
     DataFrameExportFormat,
-    DataFrameExportFormatOptions,
     PandasUtils,
 )
 from orfaqs.libs.python.utils.perfutils import PerfProfiler
@@ -48,20 +49,14 @@ class _ProfilingFunctionName(enum.Enum):
     TRANSLATE_RNA_GROUP = enum.auto()
 
 
-_ExportFormatOptions = DataFrameExportFormatOptions
-_AVAILABLE_EXPORT_FORMATS: list[str] = [
-    format for format in _ExportFormatOptions.__args__
-]
-
-
 class ORFaqsProteinDiscoveryApi:
-    """ORFaqsProteinDiscoveryApi"""
+    """ORFaqsProteinsDiscoveryApi"""
 
     DATAFRAME_INDEX_KEY = 'index'
 
     @staticmethod
     def _exported_discovered_proteins_file_name(
-        export_format: _ExportFormatOptions,
+        export_format: DiscoverProteinsDataModel.export_format_options(),
         uid: str = None,
     ) -> str:
         file_name = f'discovered-proteins.{export_format}'
@@ -70,11 +65,31 @@ class ORFaqsProteinDiscoveryApi:
         return file_name
 
     @staticmethod
+    def _create_output_directory(
+        output_directory: str = None, job_id: str = None
+    ) -> pathlib.Path:
+        #######################################################################
+        # Create the local output directory path
+        if output_directory is None:
+            output_directory = './'
+
+        output_directory = DirectoryUtils.make_path_object(output_directory)
+        output_directory = output_directory.joinpath(
+            ORFaqsProteinDiscoveryApi.default_output_directory()
+        )
+        output_directory = DirectoryUtils.make_path_object(output_directory)
+        if isinstance(job_id, str):
+            output_directory = output_directory.joinpath(job_id)
+
+        DirectoryUtils.mkdir_path(output_directory)
+        return output_directory
+
+    @staticmethod
     def _export_discovered_proteins(
         discovered_proteins: list[ORFaqsDiscoveredProteinRecord],
         output_directory: str | os.PathLike = None,
         uid: str = None,
-        export_format: _ExportFormatOptions = None,
+        export_format: DiscoverProteinsDataModel.export_format_options() = None,
     ):
         records_dataframe = ORFaqsRecordUtils.orfaqs_records_to_dataframe(
             discovered_proteins
@@ -143,64 +158,7 @@ class ORFaqsProteinDiscoveryApi:
         return reading_frame_proteins_map
 
     @staticmethod
-    def default_export_format() -> str:
-        return DataFrameExportFormat.CSV
-
-    @staticmethod
-    def default_output_directory() -> str:
-        return './'
-
-    @staticmethod
-    def available_export_formats() -> list[str]:
-        return _AVAILABLE_EXPORT_FORMATS
-
-    @staticmethod
-    def exported_dataframe_keys() -> list[str]:
-        return [
-            ORFaqsProteinDiscoveryApi.DATAFRAME_INDEX_KEY
-        ] + ORFaqsDiscoveredProteinRecord.keys()
-
-    @staticmethod
-    def unreferenced_uid() -> str:
-        return 'unknown_reference'
-
-    @staticmethod
-    def find_discovered_protein_files(
-        input_path: str | os.PathLike,
-    ) -> list[pathlib.Path]:
-        #######################################################################
-        # Gather all discovery files.
-        input_file_paths: list[pathlib.Path] = []
-        if DirectoryUtils.is_file(input_path):
-            input_file_paths.append(input_path)
-
-        elif DirectoryUtils.is_directory(input_path):
-            # Grab all files from the directory. In discoveries involving
-            # multiple genes, discovery files will be organized in
-            # subdirectories.
-            input_file_paths = DirectoryUtils.glob_files(
-                input_path, recursive=True
-            )
-
-        discovered_proteins_files: list[pathlib.Path] = []
-        for file_path in input_file_paths:
-            # Validate the file paths...
-            proteins_dataframe = PandasUtils.read_file_as_dataframe(
-                file_path,
-                raise_error=False,
-            )
-            if proteins_dataframe is None:
-                continue
-
-            for record_key in ORFaqsDiscoveredProteinRecord.keys():
-                if record_key not in proteins_dataframe.columns:
-                    continue
-            discovered_proteins_files.append(file_path)
-
-        return discovered_proteins_files
-
-    @staticmethod
-    def discover_proteins_from_sequence(
+    def _discover_proteins_from_sequence(
         genomic_sequence: str | GenomicSequence,
         uid: str = None,
         strand_type: StrandType = None,
@@ -210,7 +168,8 @@ class ORFaqsProteinDiscoveryApi:
         include_reverse_complement: bool = True,
         export_results: bool = False,
         output_directory: str | os.PathLike = None,
-        export_format: _ExportFormatOptions = None,
+        job_id: str = None,
+        export_format: DiscoverProteinsDataModel.export_format_options() = None,
         enable_gpu: bool = True,
         display_progress: bool = False,
     ) -> tuple[(list[ORFaqsDiscoveredProteinRecord] | pathlib.Path), int]:
@@ -330,6 +289,12 @@ class ORFaqsProteinDiscoveryApi:
                     )
         number_proteins = len(discovered_proteins)
         if export_results or export_format is not None:
+            output_directory = (
+                ORFaqsProteinDiscoveryApi._create_output_directory(
+                    output_directory=output_directory,
+                    job_id=job_id,
+                )
+            )
             file_path = ORFaqsProteinDiscoveryApi._export_discovered_proteins(
                 discovered_proteins=discovered_proteins,
                 output_directory=output_directory,
@@ -341,17 +306,21 @@ class ORFaqsProteinDiscoveryApi:
         return (discovered_proteins, number_proteins)
 
     @staticmethod
-    def discover_proteins_from_fasta_file(
-        fasta_file_path: str | os.PathLike,
+    def _discover_proteins_from_fasta_file(
+        genomic_sequence: str | os.PathLike,
         strand_type: StrandType = None,
+        frames: list[RNAReadingFrame] = None,
+        start_codons: list[Codon] = None,
+        stop_codons: list[Codon] = None,
         include_reverse_complement: bool = True,
         export_results: bool = False,
         output_directory: str | os.PathLike = None,
-        export_format: _ExportFormatOptions = None,
-        display_progress: bool = False,
+        job_id: str = None,
+        export_format: DiscoverProteinsDataModel.export_format_options() = None,
         enable_gpu: bool = True,
+        display_progress: bool = False,
     ) -> tuple[dict[str, list[ORFaqsDiscoveredProteinRecord]], int]:
-        fasta_sequences = FASTAUtils.parse_file(fasta_file_path)
+        fasta_sequences = FASTAUtils.parse_file(genomic_sequence)
         discovered_proteins_maps: dict[
             str, list[ORFaqsDiscoveredProteinRecord]
         ] = {}
@@ -388,13 +357,17 @@ class ORFaqsProteinDiscoveryApi:
                     f'{fasta_sequence.uid}'
                 )
             (discovered_proteins, number_proteins) = (
-                ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
+                ORFaqsProteinDiscoveryApi._discover_proteins_from_sequence(
                     fasta_sequence.sequence,
-                    strand_type=strand_type,
                     uid=fasta_sequence.uid,
+                    strand_type=strand_type,
+                    frames=frames,
+                    start_codons=start_codons,
+                    stop_codons=stop_codons,
                     include_reverse_complement=include_reverse_complement,
                     export_results=export_results,
                     output_directory=current_sequence_output_directory,
+                    job_id=job_id,
                     export_format=export_format,
                     enable_gpu=enable_gpu,
                     display_progress=display_progress,
@@ -411,52 +384,75 @@ class ORFaqsProteinDiscoveryApi:
         return (discovered_proteins_maps, total_protein_count)
 
     @staticmethod
-    def discover_proteins(
-        input_sequence: str | os.PathLike,
-        uid: str = None,
-        include_reverse_complement: bool = True,
-        output_directory: str | os.PathLike = None,
-        job_id: str = None,
-        export_results: bool = False,
-        export_format: str = None,
-        enable_gpu: bool = False,
-        display_progress: bool = False,
-    ) -> tuple[any, int]:
+    def default_export_format() -> str:
+        return DataFrameExportFormat.CSV
+
+    @staticmethod
+    def default_output_directory() -> str:
+        return './'
+
+    @staticmethod
+    def available_export_formats() -> list[str]:
+        return DiscoverProteinsDataModel.available_export_formats()
+
+    @staticmethod
+    def exported_dataframe_keys() -> list[str]:
+        return [
+            ORFaqsProteinDiscoveryApi.DATAFRAME_INDEX_KEY
+        ] + ORFaqsDiscoveredProteinRecord.keys()
+
+    @staticmethod
+    def unreferenced_uid() -> str:
+        return 'unknown_reference'
+
+    @staticmethod
+    def find_discovered_protein_files(
+        input_path: str | os.PathLike,
+    ) -> list[pathlib.Path]:
         #######################################################################
-        # Create the local output directory path
-        if output_directory is None:
-            output_directory = './'
+        # Gather all discovery files.
+        input_file_paths: list[pathlib.Path] = []
+        if DirectoryUtils.is_file(input_path):
+            input_file_paths.append(input_path)
 
-        output_directory = DirectoryUtils.make_path_object(output_directory)
-        output_directory = output_directory.joinpath(
-            ORFaqsProteinDiscoveryApi.default_output_directory()
-        )
-        output_directory = DirectoryUtils.make_path_object(output_directory)
-        if isinstance(job_id, str):
-            output_directory = output_directory.joinpath(job_id)
+        elif DirectoryUtils.is_directory(input_path):
+            # Grab all files from the directory. In discoveries involving
+            # multiple genes, discovery files will be organized in
+            # subdirectories.
+            input_file_paths = DirectoryUtils.glob_files(
+                input_path, recursive=True
+            )
 
-        DirectoryUtils.mkdir_path(output_directory)
+        discovered_proteins_files: list[pathlib.Path] = []
+        for file_path in input_file_paths:
+            # Validate the file paths...
+            proteins_dataframe = PandasUtils.read_file_as_dataframe(
+                file_path,
+                raise_error=False,
+            )
+            if proteins_dataframe is None:
+                continue
 
-        if DirectoryUtils.is_file(input_sequence):
-            # Process as a FASTA file
-            return ORFaqsProteinDiscoveryApi.discover_proteins_from_fasta_file(
-                fasta_file_path=input_sequence,
-                include_reverse_complement=include_reverse_complement,
-                export_results=export_results,
-                export_format=export_format,
-                output_directory=output_directory,
-                enable_gpu=enable_gpu,
-                display_progress=display_progress,
+            for record_key in ORFaqsDiscoveredProteinRecord.keys():
+                if record_key not in proteins_dataframe.columns:
+                    continue
+            discovered_proteins_files.append(file_path)
+
+        return discovered_proteins_files
+
+    @staticmethod
+    def discover_proteins(
+        discover_proteins_args: DiscoverProteinsDataModel.ArgsModel,
+    ) -> tuple[any, int]:
+        if DirectoryUtils.is_file(discover_proteins_args.genomic_sequence):
+            # Process as a FASTA file.
+            return (
+                ORFaqsProteinDiscoveryApi._discover_proteins_from_fasta_file(
+                    **discover_proteins_args.model_dump(exclude_none=True)
+                )
             )
         else:
-            # Process as an sequence string.
-            return ORFaqsProteinDiscoveryApi.discover_proteins_from_sequence(
-                genomic_sequence=input_sequence,
-                uid=uid,
-                include_reverse_complement=include_reverse_complement,
-                export_results=export_results,
-                output_directory=output_directory,
-                export_format=export_format,
-                enable_gpu=enable_gpu,
-                display_progress=display_progress,
+            # Process as a sequence string.
+            return ORFaqsProteinDiscoveryApi._discover_proteins_from_sequence(
+                **discover_proteins_args.model_dump()
             )

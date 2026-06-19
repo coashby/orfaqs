@@ -1,2 +1,3 @@
 -r ../../libs/python/libs-requirements.txt
+Pydantic
 typer
