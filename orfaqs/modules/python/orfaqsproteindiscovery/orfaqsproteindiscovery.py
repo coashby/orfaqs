@@ -448,7 +448,10 @@ class ORFaqsProteinDiscoveryApi:
             # Process as a FASTA file.
             return (
                 ORFaqsProteinDiscoveryApi._discover_proteins_from_fasta_file(
-                    **discover_proteins_args.model_dump(exclude_none=True)
+                    **discover_proteins_args.model_dump(
+                        exclude={DiscoverProteinsDataModel.UID_ARG_NAME},
+                        exclude_none=True,
+                    )
                 )
             )
         else:

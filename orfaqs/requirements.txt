@@ -1,3 +1,4 @@
+-r backend/python/backend-requirements.txt
 -r libs/python/libs-requirements.txt
 -r modules/python/modules-requirements.txt
 -r tests/python/tests-requirements.txt
