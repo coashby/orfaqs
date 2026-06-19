@@ -11,9 +11,8 @@ from orfaqs.modules.python.common.orfaqscli import (
     ORFaqsCliExitCodes,
 )
 from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import (
-    _ExportFormatOptions,
-    ORFaqsProteinsDiscoveryApi,
-    ORFaqsDiscoverProteinsArgsModel,
+    ORFaqsProteinDiscoveryApi,
+    DiscoverProteinsDataModel,
 )
 
 
@@ -58,8 +57,10 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
         ] = None,
         job_id: Annotated[ORFaqsCli._job_id_annotation()] = None,
         export_format: Annotated[
-            ORFaqsCli._export_format_annotation(_ExportFormatOptions)
-        ] = ORFaqsProteinsDiscoveryApi.default_export_format(),
+            ORFaqsCli._export_format_annotation(
+                DiscoverProteinsDataModel.export_format_options()
+            )
+        ] = ORFaqsProteinDiscoveryApi.default_export_format(),
         include_reverse_complement: Annotated[
             bool,
             typer.Option(
@@ -95,9 +96,8 @@ class ORFaqsProteinDiscoveryCli(ORFaqsCli):
                 ORFaqsProteinDiscoveryCli.default_output_directory()
             )
 
-        discover_protein_args = ORFaqsDiscoverProteinsArgsModel(**ui_kwargs)
-        ORFaqsProteinsDiscoveryApi.discover_proteins(
-            **discover_protein_args.model_dump()
+        ORFaqsProteinDiscoveryApi.discover_proteins(
+            DiscoverProteinsDataModel.ArgsModel(**ui_kwargs)
         )
 
     @staticmethod

@@ -101,7 +101,7 @@ _TRIPLET_AMINO_ACID_LUT = {
 }
 
 
-class RNAReadingFrame(enum.Enum):
+class RNAReadingFrame(enum.IntEnum):
     FIRST_FRAME = 1
     SECOND_FRAME = 2
     THIRD_FRAME = 3
