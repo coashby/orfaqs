@@ -463,6 +463,19 @@ class NucleotideUtils:
     def reverse_complement(
         genomic_sequence: GenomicSequence,
     ) -> GenomicSequence:
+        sequence_type_class = None
+        if isinstance(genomic_sequence, DNASequence):
+            sequence_type_class = DNASequence
+        elif isinstance(genomic_sequence, RNASequence):
+            sequence_type_class = RNASequence
+        else:
+            message = (
+                '[ERROR] The Sequence type of the input is not supported. \n'
+                '(debug) ->\n'
+                f'\ttype(genomic_sequence): {type(genomic_sequence)}\n'
+            )
+            _logger.error(message)
+            raise ValueError(message)
         reverse_complement_sequence = NucleotideUtils.reverse_complement_str(
             genomic_sequence
         )
@@ -473,19 +486,11 @@ class NucleotideUtils:
         elif strand_type is StrandType.NEGATIVE_STRAND:
             strand_type = StrandType.POSITIVE_STRAND
 
-        if isinstance(genomic_sequence, DNASequence):
-            return DNASequence(
-                sequence=reverse_complement_sequence,
-                name=name,
-                strand_type=strand_type,
-            )
-        elif isinstance(genomic_sequence, RNASequence):
-            return RNASequence(
-                sequence=reverse_complement_sequence,
-                name=name,
-                strand_type=strand_type,
-            )
-        return None
+        return sequence_type_class(
+            sequence=reverse_complement_sequence,
+            name=name,
+            strand_type=strand_type,
+        )
 
     @staticmethod
     def find_sequence(

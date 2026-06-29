@@ -306,10 +306,7 @@ class ORFaqsProteinQueryCli(ORFaqsCli):
             bool,
             typer.Option(
                 '--all',
-                help=(
-                    'Remove all managed workspaces in the database server.'
-                    'specified workspace, or the default workspace if no workspace is specified.'
-                ),
+                help=('Remove all managed workspaces.'),
             ),
         ] = False,
         ctx: typer.Context = None,

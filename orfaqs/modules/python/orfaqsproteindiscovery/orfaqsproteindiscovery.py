@@ -130,7 +130,7 @@ class ORFaqsProteinDiscoveryApi:
         reading_frames: list[RNAReadingFrame],
         start_codons: list[Codon],
         stop_codons: list[Codon],
-        enbale_gpu: bool,
+        enable_gpu: bool,
         display_progress: bool = False,
     ) -> dict[RNAReadingFrame, dict[int, Protein]]:
         #######################################################################
@@ -151,7 +151,7 @@ class ORFaqsProteinDiscoveryApi:
                     reading_frame=reading_frame,
                     start_codons=start_codons,
                     stop_codons=stop_codons,
-                    enable_gpu=enbale_gpu,
+                    enable_gpu=enable_gpu,
                     display_progress=display_progress,
                 )
             )
@@ -220,7 +220,7 @@ class ORFaqsProteinDiscoveryApi:
                 reading_frames=reading_frames,
                 start_codons=start_codons,
                 stop_codons=stop_codons,
-                enbale_gpu=enable_gpu,
+                enable_gpu=enable_gpu,
                 display_progress=display_progress,
             )
         )
@@ -238,7 +238,7 @@ class ORFaqsProteinDiscoveryApi:
                 reading_frames=reading_frames,
                 start_codons=start_codons,
                 stop_codons=stop_codons,
-                enbale_gpu=enable_gpu,
+                enable_gpu=enable_gpu,
                 display_progress=display_progress,
             )
 
@@ -261,20 +261,29 @@ class ORFaqsProteinDiscoveryApi:
                     #    DNA sequence.
                     # 2. Convert the protein's base location to a "1's" based
                     #    index.
+                    # 3. For negative strands the convention for denoting ORF
+                    #    locations is right to left. Therefore, the sequence
+                    #    position starts at X, the length of the genomic
+                    #    sequence, and proceeds to end at 0. All negative
+                    #    strand N-terminus (starting) positions must be
+                    #    indexed according to this convention.
                     sequence_length = (
                         protein.sequence_length
                         * Protein.number_bases_per_amino_acid()
                     )
-                    protein_genomic_sequence = None
+                    orf_sequence = None
+                    orf_sequence_position = None
                     if strand_type == StrandType.POSITIVE_STRAND:
-                        protein_genomic_sequence = rna_sequence
+                        orf_sequence_position = base_index + 1
+                        orf_sequence = rna_sequence
                     elif strand_type == StrandType.NEGATIVE_STRAND:
-                        protein_genomic_sequence = (
-                            reverse_complement_rna_sequence
+                        orf_sequence_position = (
+                            reverse_complement_rna_sequence.sequence_length
+                            - base_index
                         )
+                        orf_sequence = reverse_complement_rna_sequence
 
-                    # C
-                    protein_genomic_sequence = protein_genomic_sequence[
+                    orf_sequence = orf_sequence[
                         base_index : (base_index + sequence_length)
                     ]
                     discovered_proteins.append(
@@ -282,8 +291,8 @@ class ORFaqsProteinDiscoveryApi:
                             uid=uid,
                             strand_type=strand_type,
                             reading_frame=reading_frame,
-                            genomic_sequence_position=(base_index + 1),
-                            genomic_sequence=protein_genomic_sequence,
+                            orf_sequence_position=orf_sequence_position,
+                            orf_sequence=orf_sequence,
                             protein=protein,
                         )
                     )
