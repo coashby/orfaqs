@@ -104,18 +104,18 @@ class ORFaqsDiscoveredProteinsTableFactory:
                 comment=ORFaqsProteinTableUtils.orf_n_terminus_comment(),
             )
 
-            protein = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
-                sqlalchemy.String,
-                nullable=False,
-                comment=ORFaqsProteinTableUtils.protein_comment(),
-            )
-
             genomic_sequence = SqlAlchemyUtils.create_column(
                 ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_KEY,
                 sqlalchemy.String,
                 nullable=False,
                 comment=ORFaqsProteinTableUtils.genomic_sequence_comment(),
+            )
+
+            protein = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
+                sqlalchemy.String,
+                nullable=False,
+                comment=ORFaqsProteinTableUtils.protein_comment(),
             )
 
             protein_length = SqlAlchemyUtils.create_column(
