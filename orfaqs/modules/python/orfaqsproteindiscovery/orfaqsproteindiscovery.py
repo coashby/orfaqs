@@ -125,6 +125,13 @@ class ORFaqsProteinDiscoveryApi:
         return file_path
 
     @staticmethod
+    def _protein_orf_length(protein: Protein) -> int:
+        """Returns the length of the ORF associated with the given protein."""
+        return (
+            protein.sequence_length + 1
+        ) * Protein.number_bases_per_amino_acid()
+
+    @staticmethod
     def _translate_all_orf(
         rna_sequence: RNASequence,
         reading_frames: list[RNAReadingFrame],
@@ -267,9 +274,8 @@ class ORFaqsProteinDiscoveryApi:
                     #    sequence, and proceeds to end at 0. All negative
                     #    strand N-terminus (starting) positions must be
                     #    indexed according to this convention.
-                    sequence_length = (
-                        protein.sequence_length
-                        * Protein.number_bases_per_amino_acid()
+                    orf_sequence_length = (
+                        ORFaqsProteinDiscoveryApi._protein_orf_length(protein)
                     )
                     orf_sequence = None
                     orf_sequence_position = None
@@ -284,7 +290,7 @@ class ORFaqsProteinDiscoveryApi:
                         orf_sequence = reverse_complement_rna_sequence
 
                     orf_sequence = orf_sequence[
-                        base_index : (base_index + sequence_length)
+                        base_index : (base_index + orf_sequence_length)
                     ]
                     discovered_proteins.append(
                         ORFaqsDiscoveredProteinRecord(
