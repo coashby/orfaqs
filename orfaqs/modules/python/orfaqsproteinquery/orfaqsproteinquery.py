@@ -137,7 +137,7 @@ class ORFaqsProteinQueryApi(ORFaqsApi):
                 ORFaqsDiscoveredProteinsTableSchema.READING_FRAME_KEY
             ]
             rna_sequence_position = row[
-                ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_POSITION_KEY
+                ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_INDEX_KEY
             ]
             protein_length = row[
                 ORFaqsDiscoveredProteinsTableSchema.PROTEIN_LENGTH_KEY

@@ -31,7 +31,7 @@ class ORFaqsDiscoveredProteinsTableSchema(ORFaqsDiscoveredProteinRecordKeys):
             ORFaqsDiscoveredProteinsTableSchema.SOURCE_UID_KEY,
             ORFaqsDiscoveredProteinsTableSchema.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinsTableSchema.READING_FRAME_KEY,
-            ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_POSITION_KEY,
+            ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_INDEX_KEY,
             ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
             ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_KEY,
             ORFaqsDiscoveredProteinsTableSchema.PROTEIN_LENGTH_KEY,
@@ -96,19 +96,12 @@ class ORFaqsDiscoveredProteinsTableFactory:
                 comment=ORFaqsProteinTableUtils.reading_frame_comment(),
             )
 
-            genomic_sequence_position = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_POSITION_KEY,
+            orf_n_terminus_index = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_INDEX_KEY,
                 sqlalchemy.Integer,
                 sqlalchemy.CheckConstraint(_reading_frame_check_constraint()),
                 nullable=False,
-                comment=ORFaqsProteinTableUtils.genomic_sequence_position_comment(),
-            )
-
-            protein = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
-                sqlalchemy.String,
-                nullable=False,
-                comment=ORFaqsProteinTableUtils.protein_comment(),
+                comment=ORFaqsProteinTableUtils.orf_n_terminus_index_comment(),
             )
 
             genomic_sequence = SqlAlchemyUtils.create_column(
@@ -116,6 +109,13 @@ class ORFaqsDiscoveredProteinsTableFactory:
                 sqlalchemy.String,
                 nullable=False,
                 comment=ORFaqsProteinTableUtils.genomic_sequence_comment(),
+            )
+
+            protein = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
+                sqlalchemy.String,
+                nullable=False,
+                comment=ORFaqsProteinTableUtils.protein_comment(),
             )
 
             protein_length = SqlAlchemyUtils.create_column(

@@ -17,11 +17,11 @@
         "2":3,
         "3":1
     },
-    "dna_sequence_position":{
+    "orf_n_terminus_index":{
         "0":1,
         "1":4,
         "2":10,
-        "3":13
+        "3":32
     },
     "protein":{
         "0":{

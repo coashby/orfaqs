@@ -10,6 +10,7 @@ from orfaqs.modules.python.orfaqsproteindiscovery.orfaqsproteindiscovery import 
     NucleotideUtils,
     ORFaqsProteinDiscoveryApi,
     ORFaqsDiscoveredProteinRecord,
+    Protein,
     RNAReadingFrame,
 )
 
@@ -109,7 +110,7 @@ class TestORFaqsProteinDiscoveryApi:
             'source_uid',
             'strand_type',
             'reading_frame',
-            'genomic_sequence_position',
+            'orf_n_terminus_index',
             'genomic_sequence',
             'protein',
             'protein_length',
@@ -172,9 +173,35 @@ class TestORFaqsProteinDiscoveryApi:
             for discovered_protein, expected_result_str in zip(
                 discovered_proteins, expected_results
             ):
-                # All genomic sequences must begin with ATG or AUG.
+                # All genomic sequences must begin with a known start codon.
                 first_triplet = discovered_protein.genomic_sequence.triplet(0)
-                assert ('ATG' == first_triplet) or ('AUG' == first_triplet)
+                assert first_triplet in [
+                    'ATG',
+                    'AUG',
+                ]
+                # All genomic sequences must end with a known stop codon.
+                last_triplet = discovered_protein.genomic_sequence.triplet(-1)
+                assert last_triplet in [
+                    'TAA',
+                    'TAG',
+                    'TGA',
+                    'UAA',
+                    'UAG',
+                    'UGA',
+                ]
+                # All genomic sequences should be 3 base pairs longer than the
+                # recorded protein (proteins do not include the stop codon).
+                genomic_sequence_length = len(
+                    discovered_protein.genomic_sequence
+                )
+                protein_length_in_base_pairs = (
+                    len(discovered_protein.protein)
+                    * Protein.number_bases_per_amino_acid()
+                )
+                assert (
+                    genomic_sequence_length - protein_length_in_base_pairs
+                ) == Protein.number_bases_per_amino_acid()
+
                 # All proteins must begin with Methionine.
                 assert 'M' == discovered_protein.protein[0]
                 assert (

@@ -35,9 +35,9 @@ class ORFaqsProteinTableUtils:
         )
 
     @staticmethod
-    def genomic_sequence_position_comment() -> str:
+    def orf_n_terminus_index_comment() -> str:
         return (
-            'The position of the start codon in the genomic sequence '
+            "The base-pair position of the 5' end in the genomic sequence "
             'from which the protein was transcribed.'
         )
 

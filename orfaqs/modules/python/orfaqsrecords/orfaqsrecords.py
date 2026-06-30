@@ -31,7 +31,7 @@ class ORFaqsDiscoveredProteinRecordKeys(ORFaqsProteinRecordKeys):
     """ORFaqsDiscoveredProteinRecordKeys"""
 
     GENOMIC_SEQUENCE_KEY = 'genomic_sequence'
-    GENOMIC_SEQUENCE_POSITION_KEY = 'genomic_sequence_position'
+    ORF_N_TERMINUS_INDEX_KEY = 'orf_n_terminus_index'
     PROTEIN_KEY = 'protein'
     PROTEIN_LENGTH_KEY = 'protein_length'
     READING_FRAME_KEY = 'reading_frame'
@@ -95,24 +95,22 @@ class ORFaqsDiscoveredProteinRecord(
         uid: str,
         strand_type: StrandType,
         reading_frame: RNAReadingFrame,
-        genomic_sequence_position: int,
-        genomic_sequence: GenomicSequence | str,
+        orf_n_terminus_index: int,
+        orf_sequence: GenomicSequence | str,
         protein: Protein,
     ):
         self._uid = uid
         self._strand_type = strand_type
         self._reading_frame = reading_frame
-        self._genomic_sequence_position = genomic_sequence_position
-        if isinstance(genomic_sequence, str):
-            genomic_sequence = NucleotideUtils.make_sequence_object(
-                genomic_sequence,
+        self._orf_n_terminus_index = orf_n_terminus_index
+        if isinstance(orf_sequence, str):
+            orf_sequence = NucleotideUtils.make_sequence_object(
+                orf_sequence,
                 strand_type=strand_type,
             )
-        if isinstance(genomic_sequence, RNASequence):
-            genomic_sequence = RNAPolymerase.reverse_transcribe(
-                genomic_sequence
-            )
-        self._genomic_sequence = genomic_sequence
+        if isinstance(orf_sequence, RNASequence):
+            orf_sequence = RNAPolymerase.reverse_transcribe(orf_sequence)
+        self._genomic_sequence = orf_sequence
         self._protein = protein
 
     @property
@@ -128,8 +126,8 @@ class ORFaqsDiscoveredProteinRecord(
         return self._reading_frame
 
     @property
-    def genomic_sequence_position(self) -> int:
-        return self._genomic_sequence_position
+    def orf_n_terminus_index(self) -> int:
+        return self._orf_n_terminus_index
 
     @property
     def genomic_sequence(self) -> GenomicSequence:
@@ -150,10 +148,10 @@ class ORFaqsDiscoveredProteinRecord(
             elif ORFaqsDiscoveredProteinRecord.READING_FRAME_KEY == record_key:
                 record_map[record_key] = self._reading_frame.value
             elif (
-                ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_POSITION_KEY
+                ORFaqsDiscoveredProteinRecord.ORF_N_TERMINUS_INDEX_KEY
                 == record_key
             ):
-                record_map[record_key] = self._genomic_sequence_position
+                record_map[record_key] = self._orf_n_terminus_index
             elif (
                 ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_KEY
                 == record_key
@@ -182,7 +180,7 @@ class ORFaqsDiscoveredProteinRecord(
             ORFaqsDiscoveredProteinRecord.SOURCE_UID_KEY,
             ORFaqsDiscoveredProteinRecord.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinRecord.READING_FRAME_KEY,
-            ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_POSITION_KEY,
+            ORFaqsDiscoveredProteinRecord.ORF_N_TERMINUS_INDEX_KEY,
             ORFaqsDiscoveredProteinRecord.GENOMIC_SEQUENCE_KEY,
             ORFaqsDiscoveredProteinRecord.PROTEIN_KEY,
             ORFaqsDiscoveredProteinRecord.PROTEIN_LENGTH_KEY,
