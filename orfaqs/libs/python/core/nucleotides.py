@@ -281,7 +281,11 @@ class GenomicSequence(Sequence):
         end_base_index = base_index + GenomicTriplet.NUMBER_BASES
         if end_base_index > len(self._sequence_str):
             return None
-        triplet = self._sequence_str[base_index:end_base_index]
+        triplet: str = ''
+        if end_base_index == 0:
+            triplet = self._sequence_str[base_index:]
+        else:
+            triplet = self._sequence_str[base_index:end_base_index]
         return GenomicTriplet(triplet)
 
 
