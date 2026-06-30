@@ -278,12 +278,12 @@ class ORFaqsProteinDiscoveryApi:
                         ORFaqsProteinDiscoveryApi._protein_orf_length(protein)
                     )
                     orf_sequence = None
-                    orf_sequence_position = None
+                    orf_n_terminus_index = None
                     if strand_type == StrandType.POSITIVE_STRAND:
-                        orf_sequence_position = base_index + 1
+                        orf_n_terminus_index = base_index + 1
                         orf_sequence = rna_sequence
                     elif strand_type == StrandType.NEGATIVE_STRAND:
-                        orf_sequence_position = (
+                        orf_n_terminus_index = (
                             reverse_complement_rna_sequence.sequence_length
                             - base_index
                         )
@@ -297,7 +297,7 @@ class ORFaqsProteinDiscoveryApi:
                             uid=uid,
                             strand_type=strand_type,
                             reading_frame=reading_frame,
-                            orf_sequence_position=orf_sequence_position,
+                            orf_n_terminus_index=orf_n_terminus_index,
                             orf_sequence=orf_sequence,
                             protein=protein,
                         )

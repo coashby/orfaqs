@@ -109,7 +109,7 @@ class TestORFaqsProteinDiscoveryApi:
             'source_uid',
             'strand_type',
             'reading_frame',
-            'genomic_sequence_position',
+            'orf_n_terminus_index',
             'genomic_sequence',
             'protein',
             'protein_length',

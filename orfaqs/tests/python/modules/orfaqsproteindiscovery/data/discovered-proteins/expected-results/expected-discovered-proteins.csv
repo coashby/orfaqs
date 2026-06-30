@@ -1,5 +1,5 @@
-index,source_uid,strand_type,reading_frame,genomic_sequence_position,genomic_sequence,protein,protein_length
-0,unknown_reference,positive_strand,1,1,TCAGCTAGTTAGATGGTGGGATGAGCGGAGCAT,MNEICSAHPTI,11
-1,unknown_reference,positive_strand,2,4,GCTAGTTAGATGGTGGGATGAGCGGAGCATATT,MKYAPLIPPSN,11
-2,unknown_reference,positive_strand,3,10,TAGATGGTGGGATGAGCGGAGCATATTTCA,MLRSSHHLTS,10
-3,unknown_reference,negative_strand,1,13,ATGGTGGGA,MVG,3
+index,source_uid,strand_type,reading_frame,orf_n_terminus_index,genomic_sequence,protein,protein_length
+0,unknown_reference,positive_strand,1,1,TCAGCTAGTTAGATGGTGGGATGAGCGGAGCATTAA,MNEICSAHPTI,11
+1,unknown_reference,positive_strand,2,4,GCTAGTTAGATGGTGGGATGAGCGGAGCATATTTAA,MKYAPLIPPSN,11
+2,unknown_reference,positive_strand,3,10,TAGATGGTGGGATGAGCGGAGCATATTTCATAA,MLRSSHHLTS,10
+3,unknown_reference,negative_strand,1,32,ATGGTGGGATAATAA,MVG,3

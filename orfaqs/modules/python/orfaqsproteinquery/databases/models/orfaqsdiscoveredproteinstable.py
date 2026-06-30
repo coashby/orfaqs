@@ -31,7 +31,7 @@ class ORFaqsDiscoveredProteinsTableSchema(ORFaqsDiscoveredProteinRecordKeys):
             ORFaqsDiscoveredProteinsTableSchema.SOURCE_UID_KEY,
             ORFaqsDiscoveredProteinsTableSchema.STRAND_TYPE_KEY,
             ORFaqsDiscoveredProteinsTableSchema.READING_FRAME_KEY,
-            ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_KEY,
+            ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_INDEX_KEY,
             ORFaqsDiscoveredProteinsTableSchema.PROTEIN_KEY,
             ORFaqsDiscoveredProteinsTableSchema.GENOMIC_SEQUENCE_KEY,
             ORFaqsDiscoveredProteinsTableSchema.PROTEIN_LENGTH_KEY,
@@ -96,12 +96,12 @@ class ORFaqsDiscoveredProteinsTableFactory:
                 comment=ORFaqsProteinTableUtils.reading_frame_comment(),
             )
 
-            genomic_sequence_position = SqlAlchemyUtils.create_column(
-                ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_KEY,
+            orf_n_terminus_index = SqlAlchemyUtils.create_column(
+                ORFaqsDiscoveredProteinsTableSchema.ORF_N_TERMINUS_INDEX_KEY,
                 sqlalchemy.Integer,
                 sqlalchemy.CheckConstraint(_reading_frame_check_constraint()),
                 nullable=False,
-                comment=ORFaqsProteinTableUtils.orf_n_terminus_comment(),
+                comment=ORFaqsProteinTableUtils.orf_n_terminus_index_comment(),
             )
 
             genomic_sequence = SqlAlchemyUtils.create_column(
